@@ -5,7 +5,7 @@
 
 Teams チャットで「@営業支援エージェント、今週の商談サマリを教えて」と話しかけると、エージェントが **Agent Identity** を使って安全に Microsoft 365 データへアクセスし、メール・カレンダー・SharePoint から情報を収集してレポートを返すデモアプリケーションです。
 
-**Agent365 SDK ハイブリッド実装**: [microsoft/Agent365-Samples](https://github.com/microsoft/Agent365-Samples) の enterprise 機能（observability、tooling、notifications）を統合しつつ、LM Studio/Ollama などのローカル LLM にも対応した実装です。
+**Agent365 SDK ハイブリッド実装**: [microsoft/Agent365-Samples](https://github.com/microsoft/Agent365-Samples) の enterprise 機能（observability、tooling、notifications）を統合しつつ、Ollama などのローカル LLM にも対応した実装です。
 
 ### 🎯 デモで見せるポイント
 
@@ -22,7 +22,7 @@ Teams チャットで「@営業支援エージェント、今週の商談サマ�
 
 - 「Copilot ではなく __自社専用の業務エージェント__」を Teams に自然に組み込める
 - データアクセスが **ガバナンス下**であることを強調できる
-- LM Studio などの **ローカル LLM** にも対応し、クラウド依存を軽減
+- **GitHub Models で完全無料** または Ollama などの **ローカル LLM** にも対応し、コストとクラウド依存を最小化
 
 ---
 
@@ -39,10 +39,9 @@ Teams チャットで「@営業支援エージェント、今週の商談サマ�
 │              営業支援エージェント (.NET 10)                    │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │  LLM Provider (切替可能) + Agent365 Middleware       │   │
-│  │  - LM Studio (デフォルト)                              │   │
-│  │  - Ollama                                            │   │
+│  │  - GitHub Models (推奨・無料)                         │   │
+│  │  - Ollama (ローカル)                                  │   │
 │  │  - Azure OpenAI                                       │   │
-│  │  - OpenAI                                            │   │
 │  │  [IChatClient → Builder → UseFunctionInvocation()    │   │
 │  │   → UseOpenTelemetry() → Build()]                    │   │
 │  └──────────────────────────────────────────────────────┘   │
@@ -87,7 +86,7 @@ Teams チャットで「@営業支援エージェント、今週の商談サマ�
 ### 必要な環境
 
 - ✅ **.NET 10 SDK**
-- ✅ **LM Studio** (またはOllama / Azure OpenAI / OpenAI)
+- ✅ **GitHub Models** (推奨・無料) または Ollama / Azure OpenAI
 - ✅ **Dev Tunnel CLI** (Microsoft 推奨) または ngrok
 - ✅ **Microsoft 365 開発者テナント**（推奨）
 
@@ -159,15 +158,54 @@ devtunnel delete sales-support-agent
 devtunnel --help
 ```
 
-### 1. LM Studio のセットアップ
+### 0. GitHub Models のセットアップ（推奨・無料）
 
-1. [LM Studio](https://lmstudio.ai/) をダウンロード・インストール
-2. 任意のモデルをダウンロード（推奨: Qwen2.5, Llama 3.2, Phi-3.5 など）
-3. LM Studio を起動し、**Local Server** を開始
-   - デフォルト: `http://localhost:1234`
-4. モデルをロードして動作確認
+**GitHub Models は完全無料で GPT-4o, GPT-4o-mini, Llama などの最新モデルを利用できます。**
 
-### 2. プロジェクトのセットアップ
+#### Personal Access Token (PAT) の作成
+
+1. [GitHub Settings → Tokens](https://github.com/settings/tokens) にアクセス
+2. **Generate new token** → **Generate new token (classic)** を選択
+3. Token の設定:
+   - **Note**: `SalesSupportAgent - GitHub Models`
+   - **Expiration**: 任意（推奨: 90 days）
+   - **Select scopes**: `models` にチェック ✅
+4. **Generate token** をクリック
+5. 表示されたトークンをコピー（**1度しか表示されません**）
+
+#### 利用可能なモデル
+
+- `openai/gpt-4o` - 最新の GPT-4o（高性能）
+- `openai/gpt-4o-mini` - GPT-4o mini（高速・低コスト）
+- `meta-llama/Llama-3.2-90B-Vision-Instruct` - Meta Llama 3.2 90B
+- `deepseek/deepseek-r1` - DeepSeek R1
+- その他多数: [GitHub Marketplace](https://github.com/marketplace?type=models)
+
+#### 設定方法
+
+[appsettings.json](SalesSupportAgent/appsettings.json) を編集:
+
+```json
+{
+  "LLM": {
+    "Provider": "GitHubModels",
+    "GitHubModels": {
+      "Token": "ghp_your_personal_access_token_here",
+      "ModelName": "openai/gpt-4o-mini"
+    }
+  }
+}
+```
+
+または環境変数で設定:
+
+```bash
+export LLM__Provider=GitHubModels
+export LLM__GitHubModels__Token=ghp_your_token
+export LLM__GitHubModels__ModelName=openai/gpt-4o-mini
+```
+
+### 1. プロジェクトのセットアップ
 
 ```bash
 # リポジトリをクローン
@@ -176,12 +214,13 @@ cd /path/to/POC-Agent365SDK-TeamsAgent/SalesSupportAgent
 # 環境変数ファイルを作成
 cp .env.sample .env
 
-# .env ファイルを編集
-# LLM__Provider=LMStudio
-# LLM__LMStudio__ModelName=<LM Studioでロードしたモデル名>
+# .env ファイルを編集してGitHub Models トークンを設定
+# LLM__Provider=GitHubModels
+# LLM__GitHubModels__Token=ghp_your_token_here
+# LLM__GitHubModels__ModelName=openai/gpt-4o-mini
 ```
 
-###3. ビルド＆実行
+### 2. ビルド＆実行
 
 ```bash
 # ビルド
@@ -193,7 +232,7 @@ dotnet run
 
 アプリケーションは `https://localhost:5001` で起動します。
 
-### 4. 動作確認（ローカルテスト）
+### 3. 動作確認（ローカルテスト）
 
 ```bash
 # ヘルスチェック
@@ -212,15 +251,44 @@ curl -X POST https://localhost:5001/api/sales-summary \
 ### LLM プロバイダーの切り替え
 
 [appsettings.json](SalesSupportAgent/appsettings.json) または `.env` ファイルで設定:
+#### GitHub Models（推奨・無料）
 
 ```json
 {
   "LLM": {
-    "Provider": "LMStudio",  // LMStudio, Ollama, AzureOpenAI, OpenAI
-    "LMStudio": {
-      "Endpoint": "http://localhost:1234/v1",
-      "ModelName": "qwen2.5-coder-7b-instruct",
-      "ApiKey": "not-needed"
+    "Provider": "GitHubModels",
+    "GitHubModels": {
+      "Token": "ghp_your_personal_access_token",
+      "ModelName": "openai/gpt-4o-mini"
+    }
+  }
+}
+```
+
+#### Ollama（ローカル）
+
+```json
+{
+  "LLM": {
+    "Provider": "Ollama",
+    "Ollama": {
+      "Endpoint": "http://localhost:11434",
+      "ModelName": "qwen2.5:latest"
+    }
+  }
+}
+```
+
+#### Azure OpenAI
+
+```json
+{
+  "LLM": {
+    "Provider": "AzureOpenAI",
+    "AzureOpenAI": {
+      "Endpoint": "https://your-resource.openai.azure.com",
+      "DeploymentName": "gpt-4o",
+      "ApiKey": "your-api-key"
     }
   }
 }
@@ -443,7 +511,15 @@ Teams で以下のようにメンション:
 - ✅ **最小権限の原則**: 必要最小限の Graph API 権限のみを付与
 - ✅ **シークレット管理**: クライアントシークレットは環境変数で管理
 - ✅ **OpenTelemetry**: すべての API 呼び出しを観測可能
-- ✅ **認証の一元管理**: GraphServiceClient を DI コンテナでシングルトン管理
+- ✅ GitHub Models に接続できない
+
+- Personal Access Token (PAT) が正しいか確認
+- PAT に `models` スコープが付与されているか確認
+- トークンの有効期限が切れていないか確認
+- モデル名が正しいか確認（例: `openai/gpt-4o-mini`）
+- [GitHub Marketplace](https://github.com/marketplace?type=models) でモデルの利用可能性を確認
+
+### **認証の一元管理**: GraphServiceClient を DI コンテナでシングルトン管理
 - ✅ **Managed Identity 対応**: Azure 環境でのシークレットレス認証に対応
 - ✅ **トークンキャッシュ最適化**: 認証トークンの再利用によるパフォーマンス向上
 
@@ -489,11 +565,19 @@ Managed Identity を使用すると、シークレット管理が不要になり
 
 ## ⚠️ トラブルシューティング
 
-### LM Studio に接続できない
+### GitHub Models に接続できない
 
-- LM Studio の Local Server が起動しているか確認
-- エンドポイント URL が正しいか確認 (`http://localhost:1234/v1`)
-- モデルがロードされているか確認
+- Personal Access Token (PAT) が正しいか確認
+- PAT に `models` スコープが付与されているか確認
+- トークンの有効期限が切れていないか確認
+- モデル名が正しいか確認（例: `openai/gpt-4o-mini`）
+- [GitHub Marketplace](https://github.com/marketplace?type=models) でモデルの利用可能性を確認
+
+### Ollama に接続できない
+
+- Ollama サーバーが起動しているか確認 (`ollama serve`)
+- エンドポイント URL が正しいか確認（デフォルト: `http://localhost:11434`）
+- モデルがダウンロードされているか確認 (`ollama list`)
 
 ### M365 データにアクセスできない
 
@@ -517,6 +601,7 @@ Managed Identity を使用すると、シークレット管理が不要になり
 ## 📚 追加ドキュメント
 
 - [Dev Tunnel セットアップガイド](docs/DEV-TUNNEL-SETUP.md) - 固定 URL でのトンネル作成
+- [GitHub Models セットアップガイド](docs/GITHUB-MODELS-SETUP.md) - 無料で最新 AI モデルを利用
 - [Adaptive Cards 実装ガイド](docs/ADAPTIVE-CARDS-GUIDE.md) - 視覚的な応答カードの作成方法
 - [SharePoint Search API ガイド](docs/SHAREPOINT-SEARCH-API.md) - Microsoft Search API による高度な検索
 - [Agent Identity 設定ガイド](docs/AGENT-IDENTITY-SETUP.md) - Microsoft 365 認証設定（作成予定）

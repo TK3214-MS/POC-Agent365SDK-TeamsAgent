@@ -6,14 +6,9 @@ namespace SalesSupportAgent.Configuration;
 public class LLMSettings
 {
     /// <summary>
-    /// 使用する LLM プロバイダー (LMStudio, Ollama, AzureOpenAI, OpenAI)
+    /// 使用する LLM プロバイダー (Ollama, AzureOpenAI, OpenAI, GitHubModels)
     /// </summary>
-    public string Provider { get; set; } = "LMStudio";
-
-    /// <summary>
-    /// LM Studio 設定
-    /// </summary>
-    public LMStudioSettings LMStudio { get; set; } = new();
+    public string Provider { get; set; } = "GitHubModels";
 
     /// <summary>
     /// Ollama 設定
@@ -29,13 +24,11 @@ public class LLMSettings
     /// OpenAI 設定
     /// </summary>
     public OpenAISettings OpenAI { get; set; } = new();
-}
 
-public class LMStudioSettings
-{
-    public string Endpoint { get; set; } = "http://localhost:1234/v1";
-    public string ModelName { get; set; } = "local-model";
-    public string ApiKey { get; set; } = "not-needed";
+    /// <summary>
+    /// GitHub Models 設定
+    /// </summary>
+    public GitHubModelsSettings GitHubModels { get; set; } = new();
 }
 
 public class OllamaSettings
@@ -51,6 +44,19 @@ public class AzureOpenAISettings
     public string ApiKey { get; set; } = string.Empty;
 }
 
+
+public class GitHubModelsSettings
+{
+    /// <summary>
+    /// GitHub Personal Access Token (PAT) with 'models' scope
+    /// </summary>
+    public string Token { get; set; } = string.Empty;
+
+    /// <summary>
+    /// モデル名 (例: openai/gpt-4o, openai/gpt-4o-mini, meta-llama/Llama-3.2-90B-Vision-Instruct)
+    /// </summary>
+    public string ModelName { get; set; } = "openai/gpt-4o-mini";
+}
 public class OpenAISettings
 {
     public string ApiKey { get; set; } = string.Empty;

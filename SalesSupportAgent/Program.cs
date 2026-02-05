@@ -65,9 +65,9 @@ builder.Services.AddSingleton<ILLMProvider>(sp =>
 
     return llmSettings.Provider?.ToLower() switch
     {
-        "lmstudio" => new LMStudioProvider(llmSettings.LMStudio),
         "ollama" => new OllamaProvider(llmSettings.Ollama),
         "azureopenai" => new AzureOpenAIProvider(llmSettings.AzureOpenAI),
+        "githubmodels" => new GitHubModelsProvider(llmSettings.GitHubModels),
         _ => throw new InvalidOperationException($"未サポートの LLM プロバイダー: {llmSettings.Provider}")
     };
 });
