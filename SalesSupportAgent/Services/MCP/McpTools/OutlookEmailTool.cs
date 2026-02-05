@@ -1,0 +1,105 @@
+using System.ComponentModel;
+using Azure.Identity;
+using Microsoft.Graph;
+using Microsoft.Graph.Models;
+using SalesSupportAgent.Configuration;
+
+namespace SalesSupportAgent.Services.MCP.McpTools;
+
+/// <summary>
+/// Outlook メール取得ツール
+/// </summary>
+public class OutlookEmailTool
+{
+    private readonly GraphServiceClient? _graphClient;
+    private readonly bool _isConfigured;
+
+    public OutlookEmailTool(M365Settings settings)
+    {
+        if (settings.IsConfigured)
+        {
+            var credential = new ClientSecretCredential(
+                settings.TenantId,
+                settings.ClientId,
+                settings.ClientSecret
+            );
+
+            _graphClient = new GraphServiceClient(credential);
+            _isConfigured = true;
+        }
+        else
+        {
+            _isConfigured = false;
+        }
+    }
+
+    /// <summary>
+    /// 商談関連のメールを検索
+    /// </summary>
+    /// <param name="startDate">開始日</param>
+    /// <param name="endDate">終了日</param>
+    /// <param name="keywords">検索キーワード（カンマ区切り）</param>
+    /// <returns>メールサマリ</returns>
+    [Description("商談関連のメールを検索して取得します")]
+    public async Task<string> SearchSalesEmails(
+        [Description("検索開始日 (yyyy-MM-dd)")] string startDate,
+        [Description("検索終了日 (yyyy-MM-dd)")] string endDate,
+        [Description("検索キーワード（例: 商談,提案,見積）")] string keywords = "商談,提案,見積,契約")
+    {
+        if (!_isConfigured || _graphClient == null)
+        {
+            return "⚠️ Microsoft 365 が設定されていません。appsettings.json の M365 セクションを設定してください。";
+        }
+
+        try
+        {
+            var start = DateTime.Parse(startDate);
+            var end = DateTime.Parse(endDate);
+
+            // Agent Identity を使用してメールボックスにアクセス
+            // 注: 実際には適切なメールボックス (ユーザー または 共有メールボックス) を指定
+            var messages = await _graphClient.Me.Messages
+                .GetAsync(config =>
+                {
+                    config.QueryParameters.Filter = $"receivedDateTime ge {start:yyyy-MM-ddTHH:mm:ssZ} and receivedDateTime le {end:yyyy-MM-ddTHH:mm:ssZ}";
+                    config.QueryParameters.Top = 50;
+                    config.QueryParameters.Select = new[] { "subject", "from", "receivedDateTime", "bodyPreview", "hasAttachments" };
+                    config.QueryParameters.Orderby = new[] { "receivedDateTime desc" };
+                });
+
+            if (messages?.Value == null || messages.Value.Count == 0)
+            {
+                return $"📧 期間 {startDate} ~ {endDate} の商談関連メールは見つかりませんでした。";
+            }
+
+            // キーワードでフィルタリング
+            var keywordList = keywords.Split(',').Select(k => k.Trim()).ToList();
+            var filteredMessages = messages.Value
+                .Where(m => keywordList.Any(k => 
+                    m.Subject?.Contains(k, StringComparison.OrdinalIgnoreCase) == true ||
+                    m.BodyPreview?.Contains(k, StringComparison.OrdinalIgnoreCase) == true))
+                .ToList();
+
+            if (filteredMessages.Count == 0)
+            {
+                return $"📧 期間 {startDate} ~ {endDate} でキーワード「{keywords}」に一致するメールは見つかりませんでした。";
+            }
+
+            var summary = $"📧 **商談関連メール ({filteredMessages.Count}件)**\n\n";
+            foreach (var msg in filteredMessages.Take(10))
+            {
+                summary += $"- **{msg.Subject}**\n";
+                summary += $"  送信者: {msg.From?.EmailAddress?.Name ?? "不明"}\n";
+                summary += $"  受信日時: {msg.ReceivedDateTime:yyyy/MM/dd HH:mm}\n";
+                summary += $"  添付ファイル: {(msg.HasAttachments == true ? "あり" : "なし")}\n";
+                summary += $"  概要: {msg.BodyPreview?.Substring(0, Math.Min(100, msg.BodyPreview.Length))}...\n\n";
+            }
+
+            return summary;
+        }
+        catch (Exception ex)
+        {
+            return $"❌ メール取得エラー: {ex.Message}";
+        }
+    }
+}

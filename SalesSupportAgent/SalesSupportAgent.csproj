@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.AI.OpenAI" Version="2.3.0-beta.2" />
+    <PackageReference Include="Azure.Identity" Version="1.17.1" />
+    <PackageReference Include="Microsoft.Agents.A365.Notifications" Version="0.2.118-beta" />
+    <PackageReference Include="Microsoft.Agents.A365.Observability.Extensions.AgentFramework" Version="0.2.118-beta" />
+    <PackageReference Include="Microsoft.Agents.A365.Tooling.Extensions.AgentFramework" Version="0.2.118-beta" />
+    <PackageReference Include="Microsoft.Agents.AI" Version="1.0.0-preview.260128.1" />
+    <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.0.0-preview.260128.1" />
+    <PackageReference Include="Microsoft.Agents.Storage" Version="1.3.176" />
+    <PackageReference Include="Microsoft.Agents.Storage.Transcript" Version="1.3.176" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Bot.Builder" Version="4.23.1" />
+    <PackageReference Include="Microsoft.Bot.Builder.Integration.AspNet.Core" Version="4.23.1" />
+    <PackageReference Include="Microsoft.Extensions.AI.AzureAIInference" Version="10.0.0-preview.1.25559.3" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.2.0-preview.1.26063.2" />
+    <PackageReference Include="Microsoft.Graph" Version="5.101.0" />
+    <PackageReference Include="ModelContextProtocol" Version="0.7.0-preview.1" />
+    <PackageReference Include="OpenTelemetry" Version="1.15.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.15.0" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
+  </ItemGroup>
+
+</Project>
