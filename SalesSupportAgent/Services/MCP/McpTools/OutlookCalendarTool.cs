@@ -11,26 +11,13 @@ namespace SalesSupportAgent.Services.MCP.McpTools;
 /// </summary>
 public class OutlookCalendarTool
 {
-    private readonly GraphServiceClient? _graphClient;
+    private readonly GraphServiceClient _graphClient;
     private readonly bool _isConfigured;
 
-    public OutlookCalendarTool(M365Settings settings)
+    public OutlookCalendarTool(GraphServiceClient graphClient, M365Settings settings)
     {
-        if (settings.IsConfigured)
-        {
-            var credential = new ClientSecretCredential(
-                settings.TenantId,
-                settings.ClientId,
-                settings.ClientSecret
-            );
-
-            _graphClient = new GraphServiceClient(credential);
-            _isConfigured = true;
-        }
-        else
-        {
-            _isConfigured = false;
-        }
+        _graphClient = graphClient;
+        _isConfigured = settings.IsConfigured;
     }
 
     /// <summary>
@@ -46,7 +33,7 @@ public class OutlookCalendarTool
         [Description("検索終了日 (yyyy-MM-dd)")] string endDate,
         [Description("検索キーワード（例: 商談,打ち合わせ,ミーティング）")] string keywords = "商談,打ち合わせ,ミーティング,面談")
     {
-        if (!_isConfigured || _graphClient == null)
+        if (!_isConfigured)
         {
             return "⚠️ Microsoft 365 が設定されていません。appsettings.json の M365 セクションを設定してください。";
         }

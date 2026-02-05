@@ -15,6 +15,8 @@ Teams チャットで「@営業支援エージェント、今週の商談サマ�
 - ✅ **OpenTelemetry による観測性**（トレース・メトリクス）を管理者が確認
 - ✅ **Agent365 SDK パターン**: IChatClient middleware chain (Function Invocation + OpenTelemetry)
 - ✅ **エンタープライズグレードの Agent Storage と Transcript ロギング**
+- ✅ **Adaptive Cards による視覚的な応答**（見やすく、インタラクティブな UX）
+- ✅ **Microsoft Search API による高度な SharePoint 検索**（日付範囲・キーワード対応）
 
 ### 💼 顧客価値
 
@@ -46,10 +48,16 @@ Teams チャットで「@営業支援エージェント、今週の商談サマ�
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │  MCP Tools (M365 データアクセス)                       │   │
-│  │  - Outlook メール検索                                  │   │
-│  │  - Outlook カレンダー検索                              │   │
-│  │  - SharePoint ドキュメント検索                         │   │
-│  │  - Teams チャット検索                                  │   │
+│  │  - Outlook メール検索（Graph API）                     │   │
+│  │  - Outlook カレンダー検索（Graph API）                 │   │
+│  │  - SharePoint ドキュメント検索（Microsoft Search API） │   │
+│  │  - Teams チャット検索（Graph API）                     │   │
+│  └──────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Adaptive Cards レンダリング                          │   │
+│  │  - 営業サマリーカード（構造化表示）                     │   │
+│  │  - エラーカード（視覚的なエラー通知）                   │   │
+│  │  - ウェルカムカード（初回ガイダンス）                   │   │
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │  Agent365 SDK 統合                                    │   │
@@ -228,11 +236,12 @@ curl -X POST https://localhost:5001/api/sales-summary \
    - サポートされるアカウントの種類: `この組織ディレクトリのみ`
 3. **証明書とシークレット** → **新しいクライアントシークレット**
 4. **APIのアクセス許可** → **アクセス許可の追加** → **Microsoft Graph** → **アプリケーションの許可**
-   - `Mail.Read`
-   - `Calendars.Read`
-   - `Files.Read.All`
-   - `ChannelMessage.Read.All`
-   - `Team.ReadBasic.All`
+   - `Mail.Read` - Outlook メール検索
+   - `Calendars.Read` - カレンダー予定検索
+   - `Files.Read.All` - SharePoint ファイルアクセス
+   - `Sites.Read.All` - SharePoint サイト検索（Microsoft Search API）
+   - `ChannelMessage.Read.All` - Teams メッセージ検索
+   - `Team.ReadBasic.All` - Teams 基本情報取得
 5. **管理者の同意を付与**
 
 [appsettings.json](SalesSupportAgent/appsettings.json) に設定:
@@ -405,8 +414,14 @@ Teams で以下のようにメンション:
 エージェントが以下の情報を収集:
 - 📧 Outlook: 商談関連メール
 - 📅 Calendar: 商談予定
-- 📁 SharePoint: 提案書・見積書
+- 📁 SharePoint: 提案書・見積書（Microsoft Search API で日付範囲検索）
 - 📢 Teams: 商談チャネルの会話
+
+**応答は Adaptive Card で視覚的に表示されます:**
+- 📊 構造化されたサマリー表示
+- 🎨 セクションごとに整理された見やすいレイアウト
+- ⏱️ タイムスタンプ表示
+- 🤖 LLM プロバイダー情報
 
 そして、統合されたレポートを返します。
 
@@ -428,6 +443,35 @@ Teams で以下のようにメンション:
 - ✅ **最小権限の原則**: 必要最小限の Graph API 権限のみを付与
 - ✅ **シークレット管理**: クライアントシークレットは環境変数で管理
 - ✅ **OpenTelemetry**: すべての API 呼び出しを観測可能
+- ✅ **認証の一元管理**: GraphServiceClient を DI コンテナでシングルトン管理
+- ✅ **Managed Identity 対応**: Azure 環境でのシークレットレス認証に対応
+- ✅ **トークンキャッシュ最適化**: 認証トークンの再利用によるパフォーマンス向上
+
+### 認証モード
+
+#### ローカル開発環境
+```json
+{
+  "M365": {
+    "TenantId": "your-tenant-id",
+    "ClientId": "your-client-id",
+    "ClientSecret": "your-client-secret",
+    "UseManagedIdentity": false
+  }
+}
+```
+
+#### Azure 本番環境 (Managed Identity)
+```json
+{
+  "M365": {
+    "ClientId": "your-client-id",
+    "UseManagedIdentity": true
+  }
+}
+```
+
+Managed Identity を使用すると、シークレット管理が不要になり、セキュリティが大幅に向上します。
 
 ---
 
@@ -449,31 +493,38 @@ Teams で以下のようにメンション:
 
 - LM Studio の Local Server が起動しているか確認
 - エンドポイント URL が正しいか確認 (`http://localhost:1234/v1`)
-- モデ� 追加ドキュメント
-
-- [Dev Tunnel セットアップガイド](docs/DEV-TUNNEL-SETUP.md) - 固定 URL でのトンネル作成
-- [Agent Identity 設定ガイド](docs/AGENT-IDENTITY-SETUP.md) - Microsoft 365 認証設定（作成予定）
-- [Teams Bot マニフェスト](docs/TEAMS-MANIFEST.md) - Teams アプリ設定（作成予定）
-
----
-
-## �ルがロードされているか確認
+- モデルがロードされているか確認
 
 ### M365 データにアクセスできない
 
 - Agent Identity の権限が正しく設定されているか確認
 - 管理者の同意が付与されているか確認
 - `M365__TenantId`, `M365__ClientId`, `M365__ClientSecret` が正しいか確認
-x] Dev Tunnel 固定 URL サポート
-- [ ] ビルドエラーの修正 (Microsoft.Extensions.AI.OpenAI 互換性) ✅ **完了**
+
 ### Teams Bot が応答しない
 
-- ngrok が起動しているか確認
+- Dev Tunnel または ngrok が起動しているか確認
 - Bot のメッセージングエンドポイントが正しいか確認
-- Bot の App ID とPassword が正しいか確認
--Teams にボットが正しくサイドロードされているか確認
+  - Dev Tunnel: `https://your-tunnel-id-5001.region.devtunnels.ms/api/messages`
+  - ngrok: `https://your-ngrok-url.ngrok.io/api/messages`
+- Bot の App ID と Password が正しいか確認
+- Teams にボットが正しくサイドロードされているか確認
+- Azure Portal の Bot Service で「Test in Web Chat」を試す
+- `dotnet run` でアプリケーションが起動していることを確認
 
 ---
+
+## 📚 追加ドキュメント
+
+- [Dev Tunnel セットアップガイド](docs/DEV-TUNNEL-SETUP.md) - 固定 URL でのトンネル作成
+- [Adaptive Cards 実装ガイド](docs/ADAPTIVE-CARDS-GUIDE.md) - 視覚的な応答カードの作成方法
+- [SharePoint Search API ガイド](docs/SHAREPOINT-SEARCH-API.md) - Microsoft Search API による高度な検索
+- [Agent Identity 設定ガイド](docs/AGENT-IDENTITY-SETUP.md) - Microsoft 365 認証設定（作成予定）
+- [Teams Bot マニフェスト](docs/TEAMS-MANIFEST.md) - Teams アプリ設定（作成予定）
+
+---
+
+## 📝 TODO / 今後の改善
 
 ### ✅ 完了
 
@@ -486,22 +537,34 @@ x] Dev Tunnel 固定 URL サポート
   - Microsoft.Agents.Storage + Transcript
   - IChatClient middleware chain (UseFunctionInvocation + UseOpenTelemetry)
   - AgentMetrics telemetry (ActivitySource, Meter, Counter, Histogram)
+- [x] **認証パターンの改善** (2026-02)
+  - GraphServiceClient の DI コンテナ管理
+  - TokenCredential の一元化（ClientSecretCredential / DefaultAzureCredential）
+  - Managed Identity 対応（Azure 環境でシークレットレス認証）
+  - トークンキャッシュ最適化とリトライポリシー
+- [x] **SharePoint Search API の実装** (2026-02)
+  - Microsoft Search API (`/search/query`) による高度な検索
+  - 日付範囲フィルタリング（LastModifiedTime）
+  - キーワード OR 検索対応
+  - ファイルメタデータ取得（サイズ、拡張子、更新者）
+- [x] **Adaptive Cards での応答** (2026-02)
+  - 営業サマリーカード（構造化表示、セクション分割）
+  - エラーカード（視覚的なエラー通知）
+  - ウェルカムカード（初回ガイダンス）
+  - タイムスタンプ・LLM プロバイダー情報表示
 
 ### 🚧 進行中
 
-- [ ] SharePoint Search API の実装
+なし
 
 ### 📋 計画中
 
-- [ ] 多言語対応
+- [ ] 多言語対応（英語・日本語切り替え）
 - [ ] カスタム MCP サーバーの追加
-- [ ] Adaptive Cards での応答
 - [ ] Azure にデプロイするための Dockerfile
-- [ ] CI/CD パイプライン設定
-- [ ] Azure Monitor / Application Insights 統合
-- [ ] Agent Identity の Managed Identity 対応 での応答
-- [ ] Azure にデプロイするための Dockerfile
-- [ ] CI/CD パイプライン設定
+- [ ] CI/CD パイプライン設定（GitHub Actions）
+- [ ] Application Insights への直接統合
+- [ ] ユニットテスト・統合テストの追加
 
 ---
 

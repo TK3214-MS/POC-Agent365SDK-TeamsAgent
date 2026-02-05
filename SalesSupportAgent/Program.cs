@@ -1,3 +1,5 @@
+using Azure.Core;
+using Azure.Identity;
 using Microsoft.Agents.A365.Observability;
 using Microsoft.Agents.A365.Observability.Extensions.AgentFramework;
 using Microsoft.Agents.A365.Tooling.Extensions.AgentFramework.Services;
@@ -7,6 +9,7 @@ using Microsoft.Agents.Storage.Transcript;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Integration.AspNet.Core;
 using Microsoft.Bot.Connector.Authentication;
+using Microsoft.Graph;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using SalesSupportAgent.Bot;
@@ -70,9 +73,73 @@ builder.Services.AddSingleton<ILLMProvider>(sp =>
 });
 
 // ========================================
-// MCP ツールの登録（Agent365 パターン）
+// Microsoft Graph API 認証設定（Agent365 パターン）
 // ========================================
 builder.Services.AddSingleton(m365Settings);
+
+// TokenCredential の作成（Managed Identity または ClientSecretCredential）
+builder.Services.AddSingleton<TokenCredential>(sp =>
+{
+    var logger = sp.GetRequiredService<ILogger<Program>>();
+    
+    if (!m365Settings.IsConfigured)
+    {
+        logger.LogWarning("⚠️ Microsoft 365 が設定されていません。Graph API 機能は無効です。");
+        // ダミー実装を返す（認証情報なしでも起動できるように）
+        return new ClientSecretCredential("dummy-tenant", "dummy-client", "dummy-secret");
+    }
+
+    if (m365Settings.UseManagedIdentity)
+    {
+        logger.LogInformation("🔐 Managed Identity を使用して Graph API に接続します");
+        return new DefaultAzureCredential(new DefaultAzureCredentialOptions
+        {
+            ManagedIdentityClientId = m365Settings.ClientId,
+            ExcludeVisualStudioCredential = true,
+            ExcludeVisualStudioCodeCredential = true,
+            ExcludeAzurePowerShellCredential = true,
+            Retry =
+            {
+                MaxRetries = 3,
+                Delay = TimeSpan.FromSeconds(2),
+                NetworkTimeout = TimeSpan.FromSeconds(30)
+            }
+        });
+    }
+    else
+    {
+        logger.LogInformation("🔐 ClientSecretCredential を使用して Graph API に接続します");
+        return new ClientSecretCredential(
+            m365Settings.TenantId,
+            m365Settings.ClientId,
+            m365Settings.ClientSecret,
+            new ClientSecretCredentialOptions
+            {
+                AuthorityHost = AzureAuthorityHosts.AzurePublicCloud,
+                Retry =
+                {
+                    MaxRetries = 3,
+                    Delay = TimeSpan.FromSeconds(2),
+                    NetworkTimeout = TimeSpan.FromSeconds(30)
+                }
+            });
+    }
+});
+
+// GraphServiceClient をシングルトンで登録（トークンキャッシュ最適化）
+builder.Services.AddSingleton<GraphServiceClient>(sp =>
+{
+    var credential = sp.GetRequiredService<TokenCredential>();
+    var logger = sp.GetRequiredService<ILogger<Program>>();
+    
+    logger.LogInformation("📊 GraphServiceClient を初期化しています...");
+    
+    return new GraphServiceClient(credential, m365Settings.Scopes);
+});
+
+// ========================================
+// MCP ツールの登録（Agent365 パターン）
+// ========================================
 builder.Services.AddSingleton<OutlookEmailTool>();
 builder.Services.AddSingleton<OutlookCalendarTool>();
 builder.Services.AddSingleton<SharePointTool>();

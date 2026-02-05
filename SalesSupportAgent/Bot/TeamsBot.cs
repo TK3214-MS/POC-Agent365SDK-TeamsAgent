@@ -47,22 +47,29 @@ public class TeamsBot : ActivityHandler
 
             var response = await _salesAgent.GenerateSalesSummaryAsync(request);
 
-            // 応答メッセージを作成
-            var replyText = $"{response.Response}\n\n---\n";
-            replyText += $"📊 データソース: {string.Join(", ", response.DataSources)}\n";
-            replyText += $"⚡ 処理時間: {response.ProcessingTimeMs}ms\n";
-            replyText += $"🤖 LLM: {response.LLMProvider}";
+            // Adaptive Card で応答
+            var cardAttachment = AdaptiveCardHelper.CreateSalesSummaryCard(response.Response);
+            
+            var reply = MessageFactory.Attachment(cardAttachment);
+            reply.Text = $"⚡ 処理時間: {response.ProcessingTimeMs}ms | 🤖 {response.LLMProvider}";
+            
+            await turnContext.SendActivityAsync(reply, cancellationToken);
 
-            await turnContext.SendActivityAsync(replyText, cancellationToken: cancellationToken);
-
-            _logger.LogInformation("Teams 応答送信完了: {ProcessingTime}ms", response.ProcessingTimeMs);
+            _logger.LogInformation("Teams 応答送信完了 (Adaptive Card): {ProcessingTime}ms", response.ProcessingTimeMs);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Teams メッセージ処理エラー");
-            await turnContext.SendActivityAsync(
-                $"❌ エラーが発生しました: {ex.Message}\n\n設定やログを確認してください。",
-                cancellationToken: cancellationToken);
+            
+            // エラーも Adaptive Card で表示
+            var errorCard = AdaptiveCardHelper.CreateAgentResponseCard(
+                "エラーが発生しました",
+                $"**エラー内容:**\n{ex.Message}\n\n**対処方法:**\n- appsettings.json の設定を確認してください\n- ログファイルで詳細を確認してください\n- Microsoft 365 の権限設定を確認してください",
+                isError: true
+            );
+            
+            var errorReply = MessageFactory.Attachment(errorCard);
+            await turnContext.SendActivityAsync(errorReply, cancellationToken);
         }
     }
 
@@ -72,11 +79,9 @@ public class TeamsBot : ActivityHandler
         {
             if (member.Id != turnContext.Activity.Recipient.Id)
             {
-                var welcomeMessage = @"👋 こんにちは！営業支援エージェントです。
-
-**できること:**
+                var welcomeContent = @"**できること:**
 - 📧 Outlook メールから商談関連情報を収集
-- 📅 カレンダーから商談予定を確認
+- 📅 カレンダーから商談予定を確認  
 - 📁 SharePoint から提案書・見積書を検索
 - 📢 Teams チャネルから商談関連の会話を抽出
 
@@ -91,7 +96,13 @@ public class TeamsBot : ActivityHandler
 ---
 ⚠️ 初回利用時は、管理者が Microsoft 365 と Bot の設定を完了している必要があります。";
 
-                await turnContext.SendActivityAsync(welcomeMessage, cancellationToken: cancellationToken);
+                var welcomeCard = AdaptiveCardHelper.CreateAgentResponseCard(
+                    "👋 こんにちは！営業支援エージェントです",
+                    welcomeContent
+                );
+                
+                var welcomeReply = MessageFactory.Attachment(welcomeCard);
+                await turnContext.SendActivityAsync(welcomeReply, cancellationToken);
             }
         }
     }

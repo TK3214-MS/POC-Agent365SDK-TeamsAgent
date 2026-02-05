@@ -10,26 +10,13 @@ namespace SalesSupportAgent.Services.MCP.McpTools;
 /// </summary>
 public class TeamsMessageTool
 {
-    private readonly GraphServiceClient? _graphClient;
+    private readonly GraphServiceClient _graphClient;
     private readonly bool _isConfigured;
 
-    public TeamsMessageTool(M365Settings settings)
+    public TeamsMessageTool(GraphServiceClient graphClient, M365Settings settings)
     {
-        if (settings.IsConfigured)
-        {
-            var credential = new ClientSecretCredential(
-                settings.TenantId,
-                settings.ClientId,
-                settings.ClientSecret
-            );
-
-            _graphClient = new GraphServiceClient(credential);
-            _isConfigured = true;
-        }
-        else
-        {
-            _isConfigured = false;
-        }
+        _graphClient = graphClient;
+        _isConfigured = settings.IsConfigured;
     }
 
     /// <summary>
@@ -45,7 +32,7 @@ public class TeamsMessageTool
         [Description("チャネル ID（省略可）")] string channelId = "",
         [Description("検索キーワード（例: 商談,進捗,提案）")] string keywords = "商談,進捗,提案,クライアント")
     {
-        if (!_isConfigured || _graphClient == null)
+        if (!_isConfigured)
         {
             return "⚠️ Microsoft 365 が設定されていません。appsettings.json の M365 セクションを設定してください。";
         }
