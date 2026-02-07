@@ -115,10 +115,31 @@ public class SalesAgent
         var stopwatch = Stopwatch.StartNew();
         var dataSources = new List<string>();
         var operationId = Guid.NewGuid().ToString();
+        
+        // 詳細トレースセッション開始
+        var sessionId = _observabilityService.StartDetailedTrace(
+            conversationId: operationId,
+            userId: "API-User",
+            userQuery: request.Query
+        );
 
         try
         {
             _logger.LogInformation("商談サマリ生成開始: {Query}", request.Query);
+            
+            // エージェントアクティビティ更新
+            await _observabilityService.UpdateAgentActivityAsync(
+                "sales-support-agent-1",
+                "商談サマリ生成中"
+            );
+            
+            // Phase 1: リクエスト受信
+            await _observabilityService.AddTracePhaseAsync(
+                sessionId,
+                "Request Received",
+                "商談サマリ生成リクエストを受信しました",
+                new { Query = request.Query, StartDate = request.StartDate, EndDate = request.EndDate }
+            );
             
             // 通知: 開始通知
             await _notificationService.SendProgressNotificationAsync(operationId, "🚀 商談サマリ生成を開始しています...", 0);
@@ -133,16 +154,46 @@ public class SalesAgent
             // クエリに日付範囲を追加
             var enhancedQuery = $"{request.Query}\n\n期間: {startDate:yyyy-MM-dd} ~ {endDate:yyyy-MM-dd}";
 
+            // Phase 2: クエリ準備
+            await _observabilityService.AddTracePhaseAsync(
+                sessionId,
+                "Query Preparation",
+                "日付範囲を含むクエリを準備しました",
+                new { EnhancedQuery = enhancedQuery, StartDate = startDate, EndDate = endDate }
+            );
+            
             // 通知: データ収集開始
             await _notificationService.SendProgressNotificationAsync(operationId, "📊 データ収集中（メール、カレンダー、ドキュメント）...", 25);
             
             // Observability: エージェント実行開始トレース
             await _observabilityService.RecordTraceAsync("⚙️ AIエージェント実行中", "info", stopwatch.ElapsedMilliseconds);
             
+            // Phase 3: AI実行開始
+            await _observabilityService.AddTracePhaseAsync(
+                sessionId,
+                "AI Agent Execution Started",
+                "AIエージェントによるデータ収集と分析を開始しました",
+                new { Provider = _llmProvider.ProviderName, Tools = new[] { "Email", "Calendar", "SharePoint", "Teams" } }
+            );
+            
             // エージェント実行
             var agentStopwatch = Stopwatch.StartNew();
             var agentResponse = await _agent.RunAsync(enhancedQuery);
             agentStopwatch.Stop();
+            
+            // Phase 4: AI応答取得
+            var responseText = ExtractResponseText(agentResponse);
+            await _observabilityService.AddTracePhaseAsync(
+                sessionId,
+                "AI Response Received",
+                $"AIエージェントから応答を取得しました（{agentStopwatch.ElapsedMilliseconds}ms）",
+                new 
+                { 
+                    DurationMs = agentStopwatch.ElapsedMilliseconds,
+                    ResponseLength = responseText?.Length ?? 0,
+                    Provider = _llmProvider.ProviderName
+                }
+            );
             
             // 通知: AI分析中
             await _notificationService.SendProgressNotificationAsync(operationId, "🤖 AI分析中（サマリ生成処理）...", 75);
@@ -152,30 +203,52 @@ public class SalesAgent
             
             // デバッグ: 応答型を確認
             _logger.LogInformation("エージェント応答型: {Type}", agentResponse.GetType().FullName);
-            
-            // 応答からテキストを抽出（ツール実行結果を含む最終応答を取得）
-            var responseText = ExtractResponseText(agentResponse);
-            
             _logger.LogInformation("エージェント応答取得完了: {ResponseLength} 文字", responseText?.Length ?? 0);
 
             stopwatch.Stop();
 
             _logger.LogInformation("商談サマリ生成完了: {ProcessingTime}ms", stopwatch.ElapsedMilliseconds);
             
-            // 通知: 完了通知
+            // データソースを特定（実際のツール呼び出しログから）
+            dataSources.AddRange(new[] { "Outlook", "Calendar", "SharePoint", "Teams" });
+            
+            // Phase 5: 完了
+            await _observabilityService.AddTracePhaseAsync(
+                sessionId,
+                "Summary Generation Completed",
+                "商談サマリの生成が完了しました",
+                new 
+                { 
+                    TotalDurationMs = stopwatch.ElapsedMilliseconds,
+                    DataSources = dataSources,
+                    ResponseLength = responseText?.Length ?? 0
+                }
+            );
+            
+            // 通知: 完了通知（データソース情報を含む）
             await _notificationService.SendSuccessNotificationAsync(
                 operationId, 
                 $"✅ 商談サマリ生成完了！（処理時間: {stopwatch.ElapsedMilliseconds:N0}ms）",
-                new { ProcessingTimeMs = stopwatch.ElapsedMilliseconds, DataSourceCount = dataSources.Count }
+                new 
+                { 
+                    ProcessingTimeMs = stopwatch.ElapsedMilliseconds, 
+                    DataSourceCount = dataSources.Count,
+                    DataSources = string.Join(", ", dataSources),
+                    ResponseLength = responseText?.Length ?? 0
+                }
             );
             
             // Observability: 成功完了トレース＆メトリクス記録
             await _observabilityService.RecordTraceAsync("🎉 商談サマリ生成完了", "success", stopwatch.ElapsedMilliseconds);
             await _observabilityService.RecordRequestAsync(success: true, stopwatch.ElapsedMilliseconds);
             await _observabilityService.UpdateMetricsAsync();
-
-            // データソースを特定（実際のツール呼び出しログから）
-            dataSources.AddRange(new[] { "Outlook", "Calendar", "SharePoint", "Teams" });
+            
+            // 詳細トレースセッション完了
+            await _observabilityService.CompleteDetailedTraceAsync(
+                sessionId,
+                responseText ?? "応答がありませんでした。",
+                success: true
+            );
 
             return new SalesSummaryResponse
             {
@@ -190,6 +263,15 @@ public class SalesAgent
             stopwatch.Stop();
             _logger.LogError(ex, "商談サマリ生成エラー");
             
+            // エラーフェーズ記録
+            await _observabilityService.AddTracePhaseAsync(
+                sessionId,
+                "Error Occurred",
+                $"エラーが発生しました: {ex.Message}",
+                new { ErrorType = ex.GetType().Name, ErrorMessage = ex.Message },
+                status: "Failed"
+            );
+            
             // 通知: エラー通知
             await _notificationService.SendErrorNotificationAsync(
                 operationId,
@@ -201,6 +283,13 @@ public class SalesAgent
             await _observabilityService.RecordTraceAsync($"❌ エラー: {ex.Message}", "error", stopwatch.ElapsedMilliseconds);
             await _observabilityService.RecordRequestAsync(success: false, stopwatch.ElapsedMilliseconds);
             await _observabilityService.UpdateMetricsAsync();
+            
+            // 詳細トレースセッション完了（エラー）
+            await _observabilityService.CompleteDetailedTraceAsync(
+                sessionId,
+                $"エラー: {ex.Message}",
+                success: false
+            );
 
             return new SalesSummaryResponse
             {

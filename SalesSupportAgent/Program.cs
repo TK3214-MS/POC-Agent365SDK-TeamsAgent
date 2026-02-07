@@ -353,6 +353,44 @@ app.MapGet("/api/observability/traces", (ObservabilityService observabilityServi
 .WithName("GetRecentTraces");
 
 // ========================================
+// Active Agents API
+// ========================================
+app.MapGet("/api/observability/agents", (ObservabilityService observabilityService) =>
+{
+    var agents = observabilityService.GetActiveAgents();
+    return Results.Ok(agents);
+})
+.WithName("GetActiveAgents");
+
+// ========================================
+// Detailed Trace API
+// ========================================
+app.MapGet("/api/observability/detailed-traces", (ObservabilityService observabilityService, int count = 50) =>
+{
+    var sessions = observabilityService.GetAllDetailedTraces(count);
+    return Results.Ok(sessions);
+})
+.WithName("GetAllDetailedTraces");
+
+app.MapGet("/api/observability/detailed-trace/{sessionId}", (
+    string sessionId,
+    ObservabilityService observabilityService) =>
+{
+    var session = observabilityService.GetDetailedTrace(sessionId);
+    return session != null ? Results.Ok(session) : Results.NotFound();
+})
+.WithName("GetDetailedTrace");
+
+app.MapGet("/api/observability/traces-by-conversation/{conversationId}", (
+    string conversationId,
+    ObservabilityService observabilityService) =>
+{
+    var traces = observabilityService.GetTracesByConversation(conversationId);
+    return Results.Ok(traces);
+})
+.WithName("GetTracesByConversation");
+
+// ========================================
 // Transcript & Conversation History API
 // ========================================
 app.MapGet("/api/transcript/conversations", (TranscriptService transcriptService) =>
@@ -632,5 +670,32 @@ if (!botSettings.IsConfigured)
 {
     startupLogger.LogWarning("Teams Bot が設定されていません。appsettings.json の Bot セクションを設定してください。");
 }
+
+// ========================================
+// アクティブエージェント登録（アプリケーション起動後）
+// ========================================
+var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+lifetime.ApplicationStarted.Register(() =>
+{
+    var observabilityService = app.Services.GetRequiredService<ObservabilityService>();
+    _ = Task.Run(async () =>
+    {
+        try
+        {
+            await observabilityService.RegisterAgentAsync(
+                agentId: "sales-support-agent-1",
+                agentName: "営業支援エージェント",
+                agentType: "Sales Support",
+                status: "Active",
+                iconUrl: "https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Bot/SVG/ic_fluent_bot_24_filled.svg"
+            );
+            startupLogger.LogInformation("✅ エージェント登録完了: 営業支援エージェント");
+        }
+        catch (Exception ex)
+        {
+            startupLogger.LogError(ex, "❌ エージェント登録エラー");
+        }
+    });
+});
 
 app.Run();

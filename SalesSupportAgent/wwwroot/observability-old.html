@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent 365 Observability Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .connection-status.connected {
+            background: #10b981;
+            color: white;
+        }
+
+        .connection-status.disconnected {
+            background: #ef4444;
+            color: white;
+        }
+
+        .connection-status.connecting {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .metric-card h3 {
+            font-size: 0.9rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+
+        .metric-unit {
+            font-size: 1rem;
+            color: #94a3b8;
+        }
+
+        .trace-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .trace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .trace-header h2 {
+            font-size: 1.5rem;
+            color: #1e293b;
+        }
+
+        .refresh-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            opacity: 0.9;
+        }
+
+        .trace-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .trace-item {
+            padding: 15px;
+            border-left: 4px solid;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background: #f8fafc;
+            transition: background 0.3s ease;
+        }
+
+        .trace-item:hover {
+            background: #f1f5f9;
+        }
+
+        .trace-item.info {
+            border-left-color: #3b82f6;
+        }
+
+        .trace-item.success {
+            border-left-color: #10b981;
+        }
+
+        .trace-item.error {
+            border-left-color: #ef4444;
+        }
+
+        .trace-item.warning {
+            border-left-color: #f59e0b;
+        }
+
+        .trace-operation {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .trace-timestamp {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .trace-duration {
+            font-size: 0.9rem;
+            color: #475569;
+            background: #e2e8f0;
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        .agent-info {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .agent-info h2 {
+            font-size: 1.5rem;
+            color: #1e293b;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .agent-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .agent-badge {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .notification-item {
+            padding: 15px;
+            border-left: 4px solid;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background: #f8fafc;
+            transition: background 0.3s ease;
+        }
+
+        .notification-item:hover {
+            background: #f1f5f9;
+        }
+
+        .notification-item.progress {
+            border-left-color: #3b82f6;
+        }
+
+        .notification-item.success {
+            border-left-color: #10b981;
+        }
+
+        .notification-item.error {
+            border-left-color: #ef4444;
+        }
+
+        .notification-item.warning {
+            border-left-color: #f59e0b;
+        }
+
+        .notification-message {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .notification-meta {
+            font-size: 0.85rem;
+            color: #64748b;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .conversation-item {
+            padding: 12px 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .conversation-item:hover {
+            background: #e2e8f0;
+        }
+
+        .conversation-id {
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+
+        .conversation-meta {
+            font-size: 0.85rem;
+            color: #64748b;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .message-item {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+        }
+
+        .message-item.user {
+            background: #dbeafe;
+            margin-left: 20px;
+        }
+
+        .message-item.bot {
+            background: #e0e7ff;
+            margin-right: 20px;
+        }
+
+        .message-from {
+            font-weight: bold;
+            font-size: 0.85rem;
+            margin-bottom: 3px;
+        }
+
+        .message-text {
+            font-size: 0.9rem;
+        }
+
+        .message-timestamp {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status connecting" id="connectionStatus">
+        接続中...
+    </div>
+
+    <div class="header">
+        <h1>🚀 Agent 365 Observability Dashboard</h1>
+        <p>リアルタイムエージェント監視 & メトリクス可視化</p>
+    </div>
+
+    <div class="dashboard">
+        <!-- メトリクスカード -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <h3>📊 総リクエスト</h3>
+                <div class="metric-value" id="totalRequests">0</div>
+                <div class="metric-unit">requests</div>
+            </div>
+
+            <div class="metric-card">
+                <h3>⚡ 平均応答時間</h3>
+                <div class="metric-value" id="avgResponseTime">0</div>
+                <div class="metric-unit">ms</div>
+            </div>
+
+            <div class="metric-card">
+                <h3>✅ 成功率</h3>
+                <div class="metric-value" id="successRate">100</div>
+                <div class="metric-unit">%</div>
+            </div>
+
+            <div class="metric-card">
+                <h3>🕐 稼働時間</h3>
+                <div class="metric-value" id="uptime">0</div>
+                <div class="metric-unit">分</div>
+            </div>
+        </div>
+
+        <!-- アクティブエージェント -->
+        <div class="agent-info">
+            <h2>🤖 アクティブエージェント</h2>
+            <div class="agent-list" id="agentList">
+                <div class="no-data">エージェント情報を取得中...</div>
+            </div>
+        </div>
+
+        <!-- トレースリスト -->
+        <div class="trace-container">
+            <div class="trace-header">
+                <h2>📝 リアルタイムトレース</h2>
+                <button class="refresh-btn" onclick="refreshTraces()">🔄 更新</button>
+            </div>
+            <div class="trace-list" id="traceList">
+                <div class="no-data pulse">トレースデータを待機中...</div>
+            </div>
+        </div>
+
+        <!-- 通知パネル -->
+        <div class="trace-container">
+            <div class="trace-header">
+                <h2>🔔 リアルタイム通知</h2>
+                <button class="refresh-btn" onclick="refreshNotifications()">🔄 更新</button>
+            </div>
+            <div class="trace-list" id="notificationList">
+                <div class="no-data pulse">通知データを待機中...</div>
+            </div>
+        </div>
+
+        <!-- 会話履歴パネル -->
+        <div class="trace-container">
+            <div class="trace-header">
+                <h2>💬 会話履歴</h2>
+                <button class="refresh-btn" onclick="refreshConversations()">🔄 更新</button>
+            </div>
+            <div class="trace-list" id="conversationList">
+                <div class="no-data pulse">会話データを読み込み中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SignalR Connection
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/hubs/observability")
+            .withAutomaticReconnect()
+            .build();
+
+        // Connection status
+        const statusElement = document.getElementById('connectionStatus');
+
+        function updateConnectionStatus(status, text) {
+            statusElement.className = `connection-status ${status}`;
+            statusElement.textContent = text;
+        }
+
+        // Start connection
+        async function startConnection() {
+            try {
+                updateConnectionStatus('connecting', '接続中...');
+                await connection.start();
+                updateConnectionStatus('connected', '✓ 接続済み');
+                console.log('SignalR Connected');
+                
+                // Request active agents
+                await connection.invoke('RequestActiveAgents');
+                
+                // Load initial data
+                await loadMetrics();
+                await loadTraces();
+                await loadNotifications();
+                await loadConversations();
+            } catch (err) {
+                updateConnectionStatus('disconnected', '✗ 切断');
+                console.error('SignalR Connection Error:', err);
+                setTimeout(startConnection, 5000);
+            }
+        }
+
+        // Handle reconnection
+        connection.onreconnecting(() => {
+            updateConnectionStatus('connecting', '再接続中...');
+        });
+
+        connection.onreconnected(() => {
+            updateConnectionStatus('connected', '✓ 接続済み');
+        });
+
+        connection.onclose(() => {
+            updateConnectionStatus('disconnected', '✗ 切断');
+        });
+
+        // Receive trace updates
+        connection.on('TraceUpdate', (trace) => {
+            console.log('Trace received:', trace);
+            addTraceToList(trace);
+        });
+
+        // Receive metrics updates
+        connection.on('MetricsUpdate', (metrics) => {
+            console.log('Metrics received:', metrics);
+            updateMetricsDisplay(metrics);
+        });
+
+        // Receive active agents
+        connection.on('ActiveAgents', (agents) => {
+            console.log('Active agents:', agents);
+            updateAgentList(agents);
+        });
+
+        // Receive notification updates
+        connection.on('NotificationUpdate', (notification) => {
+            console.log('Notification received:', notification);
+            addNotificationToList(notification);
+        });
+
+        // Add trace to list
+        function addTraceToList(trace) {
+            const traceList = document.getElementById('traceList');
+            
+            // Remove "no data" message
+            if (traceList.querySelector('.no-data')) {
+                traceList.innerHTML = '';
+            }
+
+            const traceItem = document.createElement('div');
+            traceItem.className = `trace-item ${trace.status}`;
+            
+            const timestamp = new Date(trace.timestamp).toLocaleTimeString('ja-JP');
+            const duration = trace.durationMs > 0 ? `${trace.durationMs.toFixed(0)}ms` : '-';
+            
+            traceItem.innerHTML = `
+                <div class="trace-operation">
+                    <span>${trace.operation}</span>
+                    <span class="trace-duration">${duration}</span>
+                </div>
+                <div class="trace-timestamp">${timestamp}</div>
+            `;
+            
+            traceList.insertBefore(traceItem, traceList.firstChild);
+            
+            // Keep only last 20 traces
+            while (traceList.children.length > 20) {
+                traceList.removeChild(traceList.lastChild);
+            }
+        }
+
+        // Update metrics display
+        function updateMetricsDisplay(metrics) {
+            document.getElementById('totalRequests').textContent = metrics.totalRequests || 0;
+            document.getElementById('avgResponseTime').textContent = (metrics.averageResponseTimeMs || 0).toFixed(0);
+            document.getElementById('successRate').textContent = (metrics.successRate || 100).toFixed(1);
+            document.getElementById('uptime').textContent = Math.floor((metrics.uptimeMinutes || 0));
+        }
+
+        // Update agent list
+        function updateAgentList(agents) {
+            const agentList = document.getElementById('agentList');
+            
+            if (!agents || agents.length === 0) {
+                agentList.innerHTML = '<div class="no-data">アクティブエージェントがありません</div>';
+                return;
+            }
+
+            agentList.innerHTML = agents.map(agent => 
+                `<div class="agent-badge">${agent}</div>`
+            ).join('');
+        }
+
+        // Load metrics from API
+        async function loadMetrics() {
+            try {
+                const response = await fetch('/api/observability/metrics');
+                const metrics = await response.json();
+                updateMetricsDisplay(metrics);
+            } catch (error) {
+                console.error('Failed to load metrics:', error);
+            }
+        }
+
+        // Load traces from API
+        async function loadTraces() {
+            try {
+                const response = await fetch('/api/observability/traces?count=20');
+                const traces = await response.json();
+                
+                const traceList = document.getElementById('traceList');
+                traceList.innerHTML = '';
+                
+                if (traces.length === 0) {
+                    traceList.innerHTML = '<div class="no-data">トレースデータがありません</div>';
+                    return;
+                }
+
+                traces.reverse().forEach(trace => addTraceToList(trace));
+            } catch (error) {
+                console.error('Failed to load traces:', error);
+            }
+        }
+
+        // Refresh traces
+        async function refreshTraces() {
+            await loadTraces();
+            await loadMetrics();
+        }
+
+        // Add notification to list
+        function addNotificationToList(notification) {
+            const notificationList = document.getElementById('notificationList');
+            
+            // Remove "no data" message
+            if (notificationList.querySelector('.no-data')) {
+                notificationList.innerHTML = '';
+            }
+
+            const notificationItem = document.createElement('div');
+            notificationItem.className = `notification-item ${notification.type}`;
+            
+            const timestamp = new Date(notification.timestamp).toLocaleTimeString('ja-JP');
+            
+            let progressBar = '';
+            if (notification.type === 'progress' && notification.progressPercentage !== undefined) {
+                progressBar = `
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${notification.progressPercentage}%"></div>
+                    </div>
+                `;
+            }
+            
+            notificationItem.innerHTML = `
+                <div class="notification-message">${notification.message}</div>
+                <div class="notification-meta">
+                    <span>${timestamp}</span>
+                    ${notification.progressPercentage !== undefined ? `<span>${notification.progressPercentage}%</span>` : ''}
+                </div>
+                ${progressBar}
+            `;
+            
+            notificationList.insertBefore(notificationItem, notificationList.firstChild);
+            
+            // Keep only last 20 notifications
+            while (notificationList.children.length > 20) {
+                notificationList.removeChild(notificationList.lastChild);
+            }
+        }
+
+        // Load notifications from API
+        async function loadNotifications() {
+            try {
+                const response = await fetch('/api/notifications/history?count=20');
+                const notifications = await response.json();
+                
+                const notificationList = document.getElementById('notificationList');
+                notificationList.innerHTML = '';
+                
+                if (notifications.length === 0) {
+                    notificationList.innerHTML = '<div class="no-data">通知データがありません</div>';
+                    return;
+                }
+
+                notifications.reverse().forEach(notification => addNotificationToList(notification));
+            } catch (error) {
+                console.error('Failed to load notifications:', error);
+            }
+        }
+
+        // Refresh notifications
+        async function refreshNotifications() {
+            await loadNotifications();
+        }
+
+        // Load conversations from API
+        async function loadConversations() {
+            try {
+                const response = await fetch('/api/transcript/conversations');
+                const conversations = await response.json();
+                
+                const conversationList = document.getElementById('conversationList');
+                conversationList.innerHTML = '';
+                
+                if (conversations.length === 0) {
+                    conversationList.innerHTML = '<div class="no-data">会話履歴がありません</div>';
+                    return;
+                }
+
+                conversations.forEach(conversation => {
+                    const conversationItem = document.createElement('div');
+                    conversationItem.className = 'conversation-item';
+                    conversationItem.onclick = () => loadConversationHistory(conversation.conversationId);
+                    
+                    const lastActivity = new Date(conversation.lastActivity).toLocaleString('ja-JP');
+                    
+                    conversationItem.innerHTML = `
+                        <div class="conversation-id">📱 ${conversation.conversationId.substring(0, 20)}...</div>
+                        <div class="conversation-meta">
+                            <span>${conversation.messageCount} メッセージ</span>
+                            <span>${lastActivity}</span>
+                        </div>
+                    `;
+                    
+                    conversationList.appendChild(conversationItem);
+                });
+            } catch (error) {
+                console.error('Failed to load conversations:', error);
+            }
+        }
+
+        // Load conversation history
+        async function loadConversationHistory(conversationId) {
+            try {
+                const response = await fetch(`/api/transcript/history/${conversationId}?limit=50`);
+                const history = await response.json();
+                
+                const conversationList = document.getElementById('conversationList');
+                conversationList.innerHTML = `
+                    <button class="refresh-btn" onclick="loadConversations()" style="margin-bottom: 15px;">← 戻る</button>
+                `;
+                
+                if (history.length === 0) {
+                    conversationList.innerHTML += '<div class="no-data">メッセージがありません</div>';
+                    return;
+                }
+
+                history.forEach(message => {
+                    const messageItem = document.createElement('div');
+                    const isBot = message.from && message.from.includes('Agent');
+                    messageItem.className = `message-item ${isBot ? 'bot' : 'user'}`;
+                    
+                    const timestamp = new Date(message.timestamp).toLocaleTimeString('ja-JP');
+                    
+                    messageItem.innerHTML = `
+                        <div class="message-from">${message.from || 'Unknown'}</div>
+                        <div class="message-text">${message.text || '[No text]'}</div>
+                        <div class="message-timestamp">${timestamp}</div>
+                    `;
+                    
+                    conversationList.appendChild(messageItem);
+                });
+            } catch (error) {
+                console.error('Failed to load conversation history:', error);
+            }
+        }
+
+        // Refresh conversations
+        async function refreshConversations() {
+            await loadConversations();
+        }
+
+        // Auto refresh every 30 seconds
+        setInterval(async () => {
+            if (connection.state === signalR.HubConnectionState.Connected) {
+                await loadMetrics();
+            }
+        }, 30000);
+
+        // Start SignalR connection
+        startConnection();
+    </script>
+</body>
+</html>

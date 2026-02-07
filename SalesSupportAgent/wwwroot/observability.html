@@ -3,9 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agent 365 Observability Dashboard</title>
+    <title>Agent Dashboard powered by Agent 365</title>
     <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+    <!-- Fluent UI System Icons -->
+    <link rel="stylesheet" href="https://static2.sharepointonline.com/files/fabric/assets/icons/fluent-icons-all.css">
     <style>
+        :root {
+            --primary-color: #0078d4;
+            --primary-hover: #106ebe;
+            --success-color: #107c10;
+            --error-color: #d13438;
+            --warning-color: #ffb900;
+            --background: #f5f5f5;
+            --surface: #ffffff;
+            --text-primary: #242424;
+            --text-secondary: #605e5c;
+            --border-color: #edebe9;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            --shadow-md: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+            --shadow-lg: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -13,754 +31,1050 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
-            padding: 20px;
-            min-height: 100vh;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
         }
 
+        /* ========== Header ========== */
         .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 30px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px 40px;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
         }
 
         .connection-status {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-weight: bold;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
         }
 
         .connection-status.connected {
-            background: #10b981;
-            color: white;
+            background: #dff6dd;
+            color: var(--success-color);
         }
 
         .connection-status.disconnected {
-            background: #ef4444;
-            color: white;
+            background: #fde7e9;
+            color: var(--error-color);
         }
 
-        .connection-status.connecting {
-            background: #f59e0b;
-            color: white;
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
         }
 
-        .dashboard {
-            max-width: 1400px;
+        .status-indicator.connected {
+            background: var(--success-color);
+        }
+
+        .status-indicator.disconnected {
+            background: var(--error-color);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* ========== Container ========== */
+        .container {
+            max-width: 1600px;
             margin: 0 auto;
+            padding: 30px 40px;
         }
 
+        /* ========== Metrics Grid ========== */
         .metrics-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
 
         .metric-card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
         }
 
         .metric-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
         }
 
-        .metric-card h3 {
-            font-size: 0.9rem;
-            color: #64748b;
+        .metric-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .metric-icon {
+            font-size: 24px;
+        }
+
+        .metric-label {
+            font-size: 13px;
+            color: var(--text-secondary);
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
         }
 
         .metric-value {
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: #1e293b;
-            margin-bottom: 5px;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary-color);
         }
 
         .metric-unit {
-            font-size: 1rem;
-            color: #94a3b8;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-left: 4px;
         }
 
-        .trace-container {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        /* ========== Section ========== */
+        .section {
+            background: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
             margin-bottom: 30px;
+            box-shadow: var(--shadow-sm);
         }
 
-        .trace-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #e2e8f0;
-        }
-
-        .trace-header h2 {
-            font-size: 1.5rem;
-            color: #1e293b;
-        }
-
-        .refresh-btn {
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: opacity 0.3s ease;
-        }
-
-        .refresh-btn:hover {
-            opacity: 0.9;
-        }
-
-        .trace-list {
-            max-height: 600px;
-            overflow-y: auto;
-        }
-
-        .trace-item {
-            padding: 15px;
-            border-left: 4px solid;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            background: #f8fafc;
-            transition: background 0.3s ease;
-        }
-
-        .trace-item:hover {
-            background: #f1f5f9;
-        }
-
-        .trace-item.info {
-            border-left-color: #3b82f6;
-        }
-
-        .trace-item.success {
-            border-left-color: #10b981;
-        }
-
-        .trace-item.error {
-            border-left-color: #ef4444;
-        }
-
-        .trace-item.warning {
-            border-left-color: #f59e0b;
-        }
-
-        .trace-operation {
-            font-weight: bold;
-            margin-bottom: 5px;
+        .section-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .trace-timestamp {
-            font-size: 0.85rem;
-            color: #64748b;
-        }
-
-        .trace-duration {
-            font-size: 0.9rem;
-            color: #475569;
-            background: #e2e8f0;
-            padding: 4px 10px;
-            border-radius: 12px;
-        }
-
-        .no-data {
-            text-align: center;
-            padding: 40px;
-            color: #94a3b8;
-            font-size: 1.1rem;
-        }
-
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.5;
-            }
-        }
-
-        .pulse {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-
-        .agent-info {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            margin-bottom: 30px;
-        }
-
-        .agent-info h2 {
-            font-size: 1.5rem;
-            color: #1e293b;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #e2e8f0;
-        }
-
-        .agent-list {
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
             display: flex;
-            flex-wrap: wrap;
+            align-items: center;
             gap: 10px;
         }
 
-        .agent-badge {
+        .section-title-icon {
+            font-size: 20px;
+        }
+
+        .section-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
             padding: 8px 16px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-
-        .notification-item {
-            padding: 15px;
-            border-left: 4px solid;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            background: #f8fafc;
-            transition: background 0.3s ease;
-        }
-
-        .notification-item:hover {
-            background: #f1f5f9;
-        }
-
-        .notification-item.progress {
-            border-left-color: #3b82f6;
-        }
-
-        .notification-item.success {
-            border-left-color: #10b981;
-        }
-
-        .notification-item.error {
-            border-left-color: #ef4444;
-        }
-
-        .notification-item.warning {
-            border-left-color: #f59e0b;
-        }
-
-        .notification-message {
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .notification-meta {
-            font-size: 0.85rem;
-            color: #64748b;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: #e2e8f0;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            transition: width 0.3s ease;
-        }
-
-        .conversation-item {
-            padding: 12px 15px;
-            background: #f8fafc;
-            border-radius: 8px;
-            margin-bottom: 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.3s ease;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .conversation-item:hover {
-            background: #e2e8f0;
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
         }
 
-        .conversation-id {
-            font-weight: bold;
-            color: #1e293b;
-            margin-bottom: 5px;
+        .btn-primary:hover {
+            background: var(--primary-hover);
         }
 
-        .conversation-meta {
-            font-size: 0.85rem;
-            color: #64748b;
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--background);
+        }
+
+        .section-content {
+            padding: 24px;
+        }
+
+        /* ========== Active Agents ========== */
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .agent-card {
+            background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            gap: 16px;
+        }
+
+        .agent-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), #00bcf2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .agent-info {
+            flex: 1;
+        }
+
+        .agent-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .agent-type {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .agent-status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .agent-status.active {
+            background: #dff6dd;
+            color: var(--success-color);
+        }
+
+        /* ========== Timeline ========== */
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 14px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border-color);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 24px;
+            cursor: pointer;
+            padding: 16px;
+            border-radius: 8px;
+            background: var(--surface);
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .timeline-item:hover {
+            background: #f9f9f9;
+            border-color: var(--primary-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: -33px;
+            top: 20px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            border: 3px solid var(--surface);
+            box-shadow: 0 0 0 2px var(--border-color);
+        }
+
+        .timeline-marker.user {
+            background: #00bcf2;
+        }
+
+        .timeline-marker.agent {
+            background: var(--success-color);
+        }
+
+        .timeline-header {
             display: flex;
             justify-content: space-between;
-        }
-
-        .message-item {
-            padding: 10px 12px;
+            align-items: center;
             margin-bottom: 8px;
-            border-radius: 6px;
         }
 
-        .message-item.user {
-            background: #dbeafe;
-            margin-left: 20px;
+        .timeline-author {
+            font-weight: 600;
+            color: var(--text-primary);
         }
 
-        .message-item.bot {
-            background: #e0e7ff;
-            margin-right: 20px;
+        .timeline-time {
+            font-size: 12px;
+            color: var(--text-secondary);
         }
 
-        .message-from {
-            font-weight: bold;
-            font-size: 0.85rem;
-            margin-bottom: 3px;
+        .timeline-message {
+            color: var(--text-primary);
+            line-height: 1.5;
         }
 
-        .message-text {
-            font-size: 0.9rem;
+        .timeline-phases {
+            margin-top: 12px;
+            padding-left: 16px;
+            border-left: 2px solid var(--border-color);
         }
 
-        .message-timestamp {
-            font-size: 0.75rem;
-            color: #64748b;
-            margin-top: 3px;
+        .timeline-phase {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        /* ========== Modal ========== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border-radius: 8px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+
+        .modal-close:hover {
+            background: var(--background);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .trace-detail {
+            margin-bottom: 24px;
+        }
+
+        .trace-detail-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .trace-detail-content {
+            background: var(--background);
+            padding: 16px;
+            border-radius: 4px;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .phase-card {
+            background: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .phase-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .phase-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .phase-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .phase-status.completed {
+            background: #dff6dd;
+            color: var(--success-color);
+        }
+
+        .phase-status.running {
+            background: #fff4ce;
+            color: #ca5010;
+        }
+
+        .phase-description {
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .phase-data {
+            background: #f3f2f1;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            color: var(--text-primary);
+            overflow-x: auto;
+        }
+
+        /* ========== Empty State ========== */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state-text {
+            font-size: 16px;
+        }
+
+        /* ========== Scrollbar ========== */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--background);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
         }
     </style>
 </head>
 <body>
-    <div class="connection-status connecting" id="connectionStatus">
-        接続中...
-    </div>
-
+    <!-- Header -->
     <div class="header">
-        <h1>🚀 Agent 365 Observability Dashboard</h1>
-        <p>リアルタイムエージェント監視 & メトリクス可視化</p>
+        <div class="header-content">
+            <div class="header-title">
+                <h1>Agent Dashboard <span style="font-weight: 400; color: var(--text-secondary); margin: 0 6px;">powered by</span><img src="/images/agent365-logo.png" alt="Agent 365" 
+                         style="height: 40px; vertical-align: middle; margin-left: 6px; margin-top: 4px;" 
+                         onerror="this.style.display='none'">
+                </h1>
+            </div>
+            <div class="connection-status disconnected" id="connectionStatus">
+                <div class="status-indicator disconnected"></div>
+                <span>接続中...</span>
+            </div>
+        </div>
     </div>
 
-    <div class="dashboard">
-        <!-- メトリクスカード -->
-        <div class="metrics-grid">
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Metrics Grid -->
+        <div class="metrics-grid" id="metricsGrid">
             <div class="metric-card">
-                <h3>📊 総リクエスト</h3>
-                <div class="metric-value" id="totalRequests">0</div>
-                <div class="metric-unit">requests</div>
+                <div class="metric-header">
+                    <div class="metric-icon"><img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Data%20Bar%20Vertical/SVG/ic_fluent_data_bar_vertical_24_regular.svg" alt="Chart" style="width: 24px; height: 24px;"></div>
+                    <div class="metric-label">Total Requests</div>
+                </div>
+                <div class="metric-value" id="metricTotalRequests">0</div>
             </div>
-
             <div class="metric-card">
-                <h3>⚡ 平均応答時間</h3>
-                <div class="metric-value" id="avgResponseTime">0</div>
-                <div class="metric-unit">ms</div>
+                <div class="metric-header">
+                    <div class="metric-icon"><img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Timer/SVG/ic_fluent_timer_24_regular.svg" alt="Timer" style="width: 24px; height: 24px;"></div>
+                    <div class="metric-label">Avg Response Time</div>
+                </div>
+                <div class="metric-value" id="metricAvgResponseTime">0<span class="metric-unit">ms</span></div>
             </div>
-
             <div class="metric-card">
-                <h3>✅ 成功率</h3>
-                <div class="metric-value" id="successRate">100</div>
-                <div class="metric-unit">%</div>
+                <div class="metric-header">
+                    <div class="metric-icon"><img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Checkmark%20Circle/SVG/ic_fluent_checkmark_circle_24_filled.svg" alt="Success" style="width: 24px; height: 24px;"></div>
+                    <div class="metric-label">Success Rate</div>
+                </div>
+                <div class="metric-value" id="metricSuccessRate">0<span class="metric-unit">%</span></div>
             </div>
-
             <div class="metric-card">
-                <h3>🕐 稼働時間</h3>
-                <div class="metric-value" id="uptime">0</div>
-                <div class="metric-unit">分</div>
+                <div class="metric-header">
+                    <div class="metric-icon"><img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Clock/SVG/ic_fluent_clock_24_regular.svg" alt="Clock" style="width: 24px; height: 24px;"></div>
+                    <div class="metric-label">Uptime</div>
+                </div>
+                <div class="metric-value" id="metricUptime" style="font-size: 24px;">0h</div>
             </div>
         </div>
 
-        <!-- アクティブエージェント -->
-        <div class="agent-info">
-            <h2>🤖 アクティブエージェント</h2>
-            <div class="agent-list" id="agentList">
-                <div class="no-data">エージェント情報を取得中...</div>
+        <!-- Active Agents -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">
+                    <span class="section-title-icon"><img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Bot/SVG/ic_fluent_bot_24_filled.svg" alt="Bot" style="width: 20px; height: 20px;"></span>
+                    Active Agents
+                </div>
+            </div>
+            <div class="section-content">
+                <div class="agents-grid" id="agentsList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Search/SVG/ic_fluent_search_24_regular.svg" alt="Search" style="width: 48px; height: 48px; opacity: 0.5;"></div>
+                        <div class="empty-state-text">エージェント情報を取得中...</div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- トレースリスト -->
-        <div class="trace-container">
-            <div class="trace-header">
-                <h2>📝 リアルタイムトレース</h2>
-                <button class="refresh-btn" onclick="refreshTraces()">🔄 更新</button>
+        <!-- Conversation Timeline -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">
+                    <span class="section-title-icon"><img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Chat/SVG/ic_fluent_chat_24_regular.svg" alt="Chat" style="width: 20px; height: 20px;"></span>
+                    Conversation Timeline
+                </div>
+                <div class="section-controls">
+                    <button class="btn btn-secondary" onclick="refreshTimeline()">
+                        <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Arrow%20Clockwise/SVG/ic_fluent_arrow_clockwise_24_regular.svg" alt="Refresh" style="width: 16px; height: 16px; vertical-align: middle;"> Refresh
+                    </button>
+                </div>
             </div>
-            <div class="trace-list" id="traceList">
-                <div class="no-data pulse">トレースデータを待機中...</div>
+            <div class="section-content">
+                <div class="timeline" id="timeline">
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Document/SVG/ic_fluent_document_24_regular.svg" alt="Document" style="width: 48px; height: 48px; opacity: 0.5;"></div>
+                        <div class="empty-state-text">会話履歴はまだありません</div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- 通知パネル -->
-        <div class="trace-container">
-            <div class="trace-header">
-                <h2>🔔 リアルタイム通知</h2>
-                <button class="refresh-btn" onclick="refreshNotifications()">🔄 更新</button>
+        <!-- Recent Traces -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">
+                    <span class="section-title-icon"><img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Search/SVG/ic_fluent_search_24_regular.svg" alt="Search" style="width: 20px; height: 20px;"></span>
+                    Recent Traces
+                </div>
+                <div class="section-controls">
+                    <button class="btn btn-secondary" onclick="refreshTraces()">
+                        <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Arrow%20Clockwise/SVG/ic_fluent_arrow_clockwise_24_regular.svg" alt="Refresh" style="width: 16px; height: 16px; vertical-align: middle;"> Refresh
+                    </button>
+                </div>
             </div>
-            <div class="trace-list" id="notificationList">
-                <div class="no-data pulse">通知データを待機中...</div>
+            <div class="section-content">
+                <div id="recentTraces">
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Data%20Bar%20Vertical/SVG/ic_fluent_data_bar_vertical_24_regular.svg" alt="Chart" style="width: 48px; height: 48px; opacity: 0.5;"></div>
+                        <div class="empty-state-text">トレースデータを読み込み中...</div>
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
 
-        <!-- 会話履歴パネル -->
-        <div class="trace-container">
-            <div class="trace-header">
-                <h2>💬 会話履歴</h2>
-                <button class="refresh-btn" onclick="refreshConversations()">🔄 更新</button>
+    <!-- Trace Detail Modal -->
+    <div class="modal" id="traceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Detailed Trace</div>
+                <button class="modal-close" onclick="closeModal()">×</button>
             </div>
-            <div class="trace-list" id="conversationList">
-                <div class="no-data pulse">会話データを読み込み中...</div>
+            <div class="modal-body" id="modalBody">
+                <!-- Dynamically populated -->
             </div>
         </div>
     </div>
 
     <script>
-        // SignalR Connection
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/hubs/observability")
-            .withAutomaticReconnect()
-            .build();
-
-        // Connection status
-        const statusElement = document.getElementById('connectionStatus');
-
-        function updateConnectionStatus(status, text) {
-            statusElement.className = `connection-status ${status}`;
-            statusElement.textContent = text;
+        // ========== Fluent UI System Icons Helper ==========
+        function getFluentIcon(iconName, size = 24, filled = false) {
+            const style = filled ? 'filled' : 'regular';
+            const baseUrl = 'https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets';
+            return `${baseUrl}/${iconName}/SVG/ic_fluent_${iconName.toLowerCase()}_${size}_${style}.svg`;
         }
 
-        // Start connection
+        function createSvgIcon(iconName, size = 24, filled = false, color = 'currentColor') {
+            return `<img src="${getFluentIcon(iconName, size, filled)}" alt="${iconName}" style="width: ${size}px; height: ${size}px; filter: ${color !== 'currentColor' ? `brightness(0) saturate(100%)` : 'none'};" />`;
+        }
+
+        // ========== SignalR Connection ==========
+        let connection;
+        let currentSession = null;
+
         async function startConnection() {
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl("/hubs/observability")
+                .withAutomaticReconnect()
+                .build();
+
+            connection.on("MetricsUpdate", updateMetrics);
+            connection.on("TraceUpdate", handleTraceUpdate);
+            connection.on("AgentUpdate", handleAgentUpdate);
+            connection.on("TracePhaseUpdate", handleTracePhaseUpdate);
+            connection.on("TraceSessionComplete", handleTraceSessionComplete);
+
             try {
-                updateConnectionStatus('connecting', '接続中...');
                 await connection.start();
-                updateConnectionStatus('connected', '✓ 接続済み');
-                console.log('SignalR Connected');
+                updateConnectionStatus(true);
+                console.log("SignalR Connected");
                 
-                // Request active agents
-                await connection.invoke('RequestActiveAgents');
-                
-                // Load initial data
-                await loadMetrics();
-                await loadTraces();
-                await loadNotifications();
-                await loadConversations();
+                // 初期データ読み込み
+                await Promise.all([
+                    fetchMetrics(),
+                    fetchAgents(),
+                    fetchDetailedTraces(),
+                    fetchRecentTraces()
+                ]);
             } catch (err) {
-                updateConnectionStatus('disconnected', '✗ 切断');
-                console.error('SignalR Connection Error:', err);
+                console.error("SignalR Connection Error:", err);
+                updateConnectionStatus(false);
                 setTimeout(startConnection, 5000);
             }
         }
 
-        // Handle reconnection
-        connection.onreconnecting(() => {
-            updateConnectionStatus('connecting', '再接続中...');
+        connection?.onreconnected(() => {
+            updateConnectionStatus(true);
+            fetchMetrics();
+            fetchAgents();
         });
 
-        connection.onreconnected(() => {
-            updateConnectionStatus('connected', '✓ 接続済み');
+        connection?.onclose(() => {
+            updateConnectionStatus(false);
+            setTimeout(startConnection, 5000);
         });
 
-        connection.onclose(() => {
-            updateConnectionStatus('disconnected', '✗ 切断');
-        });
-
-        // Receive trace updates
-        connection.on('TraceUpdate', (trace) => {
-            console.log('Trace received:', trace);
-            addTraceToList(trace);
-        });
-
-        // Receive metrics updates
-        connection.on('MetricsUpdate', (metrics) => {
-            console.log('Metrics received:', metrics);
-            updateMetricsDisplay(metrics);
-        });
-
-        // Receive active agents
-        connection.on('ActiveAgents', (agents) => {
-            console.log('Active agents:', agents);
-            updateAgentList(agents);
-        });
-
-        // Receive notification updates
-        connection.on('NotificationUpdate', (notification) => {
-            console.log('Notification received:', notification);
-            addNotificationToList(notification);
-        });
-
-        // Add trace to list
-        function addTraceToList(trace) {
-            const traceList = document.getElementById('traceList');
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            const indicator = statusEl.querySelector('.status-indicator');
             
-            // Remove "no data" message
-            if (traceList.querySelector('.no-data')) {
-                traceList.innerHTML = '';
-            }
-
-            const traceItem = document.createElement('div');
-            traceItem.className = `trace-item ${trace.status}`;
-            
-            const timestamp = new Date(trace.timestamp).toLocaleTimeString('ja-JP');
-            const duration = trace.durationMs > 0 ? `${trace.durationMs.toFixed(0)}ms` : '-';
-            
-            traceItem.innerHTML = `
-                <div class="trace-operation">
-                    <span>${trace.operation}</span>
-                    <span class="trace-duration">${duration}</span>
-                </div>
-                <div class="trace-timestamp">${timestamp}</div>
-            `;
-            
-            traceList.insertBefore(traceItem, traceList.firstChild);
-            
-            // Keep only last 20 traces
-            while (traceList.children.length > 20) {
-                traceList.removeChild(traceList.lastChild);
+            if (connected) {
+                statusEl.className = 'connection-status connected';
+                indicator.className = 'status-indicator connected';
+                statusEl.querySelector('span').textContent = '接続済み';
+            } else {
+                statusEl.className = 'connection-status disconnected';
+                indicator.className = 'status-indicator disconnected';
+                statusEl.querySelector('span').textContent = '切断';
             }
         }
 
-        // Update metrics display
-        function updateMetricsDisplay(metrics) {
-            document.getElementById('totalRequests').textContent = metrics.totalRequests || 0;
-            document.getElementById('avgResponseTime').textContent = (metrics.averageResponseTimeMs || 0).toFixed(0);
-            document.getElementById('successRate').textContent = (metrics.successRate || 100).toFixed(1);
-            document.getElementById('uptime').textContent = Math.floor((metrics.uptimeMinutes || 0));
+        // ========== Metrics ==========
+        function updateMetrics(metrics) {
+            document.getElementById('metricTotalRequests').textContent = metrics.totalRequests || 0;
+            document.getElementById('metricAvgResponseTime').innerHTML = 
+                `${Math.round(metrics.averageResponseTimeMs || 0)}<span class="metric-unit">ms</span>`;
+            document.getElementById('metricSuccessRate').innerHTML = 
+                `${Math.round(metrics.successRate || 0)}<span class="metric-unit">%</span>`;
+            document.getElementById('metricUptime').textContent = 
+                `${(metrics.uptimeHours || 0).toFixed(1)}h`;
         }
 
-        // Update agent list
-        function updateAgentList(agents) {
-            const agentList = document.getElementById('agentList');
-            
-            if (!agents || agents.length === 0) {
-                agentList.innerHTML = '<div class="no-data">アクティブエージェントがありません</div>';
-                return;
-            }
-
-            agentList.innerHTML = agents.map(agent => 
-                `<div class="agent-badge">${agent}</div>`
-            ).join('');
-        }
-
-        // Load metrics from API
-        async function loadMetrics() {
+        async function fetchMetrics() {
             try {
                 const response = await fetch('/api/observability/metrics');
                 const metrics = await response.json();
-                updateMetricsDisplay(metrics);
+                updateMetrics(metrics);
             } catch (error) {
-                console.error('Failed to load metrics:', error);
+                console.error('Failed to fetch metrics:', error);
             }
         }
 
-        // Load traces from API
-        async function loadTraces() {
+        // ========== Agents ==========
+        function handleAgentUpdate(agent) {
+            fetchAgents(); // 簡単なため再フェッチ
+        }
+
+        async function fetchAgents() {
+            try {
+                const response = await fetch('/api/observability/agents');
+                const agents = await response.json();
+                renderAgents(agents);
+            } catch (error) {
+                console.error('Failed to fetch agents:', error);
+            }
+        }
+
+        function renderAgents(agents) {
+            const container = document.getElementById('agentsList');
+            
+            if (!agents || agents.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Bot/SVG/ic_fluent_bot_24_regular.svg" alt="Bot" style="width: 48px; height: 48px; opacity: 0.5;"></div>
+                        <div class="empty-state-text">アクティブなエージェントはありません</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = agents.map(agent => {
+                const iconHtml = agent.iconUrl 
+                    ? `<img src="${agent.iconUrl}" alt="${agent.agentName}" style="width: 100%; height: 100%; object-fit: contain;">`
+                    : `<img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Bot/SVG/ic_fluent_bot_24_filled.svg" alt="Bot" style="width: 32px; height: 32px;">`;
+                
+                return `
+                <div class="agent-card">
+                    <div class="agent-avatar">${iconHtml}</div>
+                    <div class="agent-info">
+                        <div class="agent-name">${agent.agentName}</div>
+                        <div class="agent-type">${agent.agentType} • v${agent.version}</div>
+                        <span class="agent-status active">${agent.status}</span>
+                        ${agent.lastActivity ? `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
+                            <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Location/SVG/ic_fluent_location_24_filled.svg" alt="Location" style="width: 12px; height: 12px; vertical-align: middle;"> ${agent.lastActivity}
+                        </div>` : ''}
+                    </div>
+                </div>
+            `;
+            }).join('');
+        }
+
+        // ========== Timeline & Detailed Traces ==========
+        async function fetchDetailedTraces() {
+            try {
+                const response = await fetch('/api/observability/detailed-traces?count=50');
+                const traces = await response.json();
+                renderTimeline(traces);
+            } catch (error) {
+                console.error('Failed to fetch detailed traces:', error);
+            }
+        }
+
+        function renderTimeline(traces) {
+            const container = document.getElementById('timeline');
+            
+            if (!traces || traces.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Document/SVG/ic_fluent_document_24_regular.svg" alt="Document" style="width: 48px; height: 48px; opacity: 0.5;"></div>
+                        <div class="empty-state-text">会話履歴はまだありません</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = traces.map(trace => {
+                const timestamp = new Date(trace.startTime).toLocaleString('ja-JP');
+                const duration = trace.durationMs ? `${Math.round(trace.durationMs)}ms` : '実行中';
+                
+                return `
+                    <div class="timeline-item" onclick="showTraceDetail('${trace.sessionId}')">
+                        <div class="timeline-marker user"></div>
+                        <div class="timeline-header">
+                            <span class="timeline-author"><img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Person/SVG/ic_fluent_person_24_filled.svg" alt="User" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;">User</span>
+                            <span class="timeline-time">${timestamp}</span>
+                        </div>
+                        <div class="timeline-message">${trace.userQuery}</div>
+                        ${trace.finalResponse ? `
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                                <div class="timeline-marker agent"></div>
+                                <div class="timeline-header">
+                                    <span class="timeline-author"><img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Bot/SVG/ic_fluent_bot_24_filled.svg" alt="Agent" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;">Agent</span>
+                                    <span class="timeline-time">${duration}</span>
+                                </div>
+                                <div class="timeline-message">${truncateText(trace.finalResponse, 150)}</div>
+                            </div>
+                        ` : ''}
+                        ${trace.phases && trace.phases.length > 0 ? `
+                            <div class="timeline-phases">
+                                ${trace.phases.map(p => `
+                                    <div class="timeline-phase">· ${p.phaseName}: ${p.description}</div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function truncateText(text, maxLength) {
+            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        }
+
+        async function showTraceDetail(sessionId) {
+            try {
+                const response = await fetch(`/api/observability/detailed-trace/${sessionId}`);
+                const trace = await response.json();
+                
+                const modalBody = document.getElementById('modalBody');
+                modalBody.innerHTML = `
+                    <div class="trace-detail">
+                        <div class="trace-detail-header">User Query</div>
+                        <div class="trace-detail-content">${trace.userQuery}</div>
+                    </div>
+
+                    <div class="trace-detail">
+                        <div class="trace-detail-header">Execution Phases</div>
+                        ${trace.phases.map(phase => `
+                            <div class="phase-card">
+                                <div class="phase-header">
+                                    <div class="phase-name">${phase.phaseName}</div>
+                                    <span class="phase-status ${phase.status.toLowerCase()}">${phase.status}</span>
+                                </div>
+                                <div class="phase-description">${phase.description}</div>
+                                ${phase.data ? `
+                                    <div class="phase-data">
+                                        <pre>${JSON.stringify(phase.data, null, 2)}</pre>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    ${trace.finalResponse ? `
+                        <div class="trace-detail">
+                            <div class="trace-detail-header">Final Response</div>
+                            <div class="trace-detail-content">${trace.finalResponse}</div>
+                        </div>
+                    ` : ''}
+
+                    <div class="trace-detail">
+                        <div class="trace-detail-header">Metadata</div>
+                        <div class="trace-detail-content">
+                            <p><strong>Session ID:</strong> ${trace.sessionId}</p>
+                            <p><strong>Conversation ID:</strong> ${trace.conversationId}</p>
+                            <p><strong>Start Time:</strong> ${new Date(trace.startTime).toLocaleString('ja-JP')}</p>
+                            ${trace.endTime ? `<p><strong>Duration:</strong> ${Math.round(trace.durationMs)}ms</p>` : ''}
+                            <p><strong>Status:</strong> ${trace.success ? '<img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Checkmark%20Circle/SVG/ic_fluent_checkmark_circle_24_filled.svg" alt="Success" style="width: 16px; height: 16px; vertical-align: middle;"> Success' : '<img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Dismiss%20Circle/SVG/ic_fluent_dismiss_circle_24_filled.svg" alt="Failed" style="width: 16px; height: 16px; vertical-align: middle;"> Failed'}</p>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('traceModal').classList.add('active');
+            } catch (error) {
+                console.error('Failed to fetch trace detail:', error);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('traceModal').classList.remove('active');
+        }
+
+        // ========== Recent Traces ==========
+        async function fetchRecentTraces() {
             try {
                 const response = await fetch('/api/observability/traces?count=20');
                 const traces = await response.json();
-                
-                const traceList = document.getElementById('traceList');
-                traceList.innerHTML = '';
-                
-                if (traces.length === 0) {
-                    traceList.innerHTML = '<div class="no-data">トレースデータがありません</div>';
-                    return;
-                }
-
-                traces.reverse().forEach(trace => addTraceToList(trace));
+                renderRecentTraces(traces);
             } catch (error) {
-                console.error('Failed to load traces:', error);
+                console.error('Failed to fetch recent traces:', error);
             }
         }
 
-        // Refresh traces
-        async function refreshTraces() {
-            await loadTraces();
-            await loadMetrics();
-        }
-
-        // Add notification to list
-        function addNotificationToList(notification) {
-            const notificationList = document.getElementById('notificationList');
+        function renderRecentTraces(traces) {
+            const container = document.getElementById('recentTraces');
             
-            // Remove "no data" message
-            if (notificationList.querySelector('.no-data')) {
-                notificationList.innerHTML = '';
-            }
-
-            const notificationItem = document.createElement('div');
-            notificationItem.className = `notification-item ${notification.type}`;
-            
-            const timestamp = new Date(notification.timestamp).toLocaleTimeString('ja-JP');
-            
-            let progressBar = '';
-            if (notification.type === 'progress' && notification.progressPercentage !== undefined) {
-                progressBar = `
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${notification.progressPercentage}%"></div>
+            if (!traces || traces.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Data%20Bar%20Vertical/SVG/ic_fluent_data_bar_vertical_24_regular.svg" alt="Chart" style="width: 48px; height: 48px; opacity: 0.5;"></div>
+                        <div class="empty-state-text">トレースデータはありません</div>
                     </div>
                 `;
+                return;
             }
-            
-            notificationItem.innerHTML = `
-                <div class="notification-message">${notification.message}</div>
-                <div class="notification-meta">
-                    <span>${timestamp}</span>
-                    ${notification.progressPercentage !== undefined ? `<span>${notification.progressPercentage}%</span>` : ''}
+
+            container.innerHTML = `
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--border-color);">
+                                <th style="text-align: left; padding: 12px; font-weight: 600;">Time</th>
+                                <th style="text-align: left; padding: 12px; font-weight: 600;">Operation</th>
+                                <th style="text-align: left; padding: 12px; font-weight: 600;">Status</th>
+                                <th style="text-align: right; padding: 12px; font-weight: 600;">Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${traces.map(trace => `
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td style="padding: 12px; font-size: 13px; color: var(--text-secondary);">
+                                        ${new Date(trace.timestamp).toLocaleTimeString('ja-JP')}
+                                    </td>
+                                    <td style="padding: 12px;">${trace.operation}</td>
+                                    <td style="padding: 12px;">
+                                        <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; 
+                                            background: ${getStatusColor(trace.status)};">
+                                            ${trace.status}
+                                        </span>
+                                    </td>
+                                    <td style="padding: 12px; text-align: right; font-weight: 600;">
+                                        ${trace.durationMs}ms
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
                 </div>
-                ${progressBar}
             `;
-            
-            notificationList.insertBefore(notificationItem, notificationList.firstChild);
-            
-            // Keep only last 20 notifications
-            while (notificationList.children.length > 20) {
-                notificationList.removeChild(notificationList.lastChild);
+        }
+
+        function getStatusColor(status) {
+            const s = status.toLowerCase();
+            if (s.includes('success') || s.includes('completed')) return '#dff6dd';
+            if (s.includes('error') || s.includes('failed')) return '#fde7e9';
+            if (s.includes('running') || s.includes('progress')) return '#fff4ce';
+            return '#f3f2f1';
+        }
+
+        function handleTraceUpdate(trace) {
+            fetchRecentTraces();
+        }
+
+        function handleTracePhaseUpdate(data) {
+            // リアルタイム更新
+            console.log('Phase Update:', data);
+        }
+
+        function handleTraceSessionComplete(session) {
+            fetchDetailedTraces();
+        }
+
+        // ========== Refresh Functions ==========
+        function refreshTimeline() {
+            fetchDetailedTraces();
+        }
+
+        function refreshTraces() {
+            fetchRecentTraces();
+        }
+
+        // ========== Modal Click Outside ==========
+        document.getElementById('traceModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('traceModal')) {
+                closeModal();
             }
-        }
+        });
 
-        // Load notifications from API
-        async function loadNotifications() {
-            try {
-                const response = await fetch('/api/notifications/history?count=20');
-                const notifications = await response.json();
-                
-                const notificationList = document.getElementById('notificationList');
-                notificationList.innerHTML = '';
-                
-                if (notifications.length === 0) {
-                    notificationList.innerHTML = '<div class="no-data">通知データがありません</div>';
-                    return;
-                }
-
-                notifications.reverse().forEach(notification => addNotificationToList(notification));
-            } catch (error) {
-                console.error('Failed to load notifications:', error);
-            }
-        }
-
-        // Refresh notifications
-        async function refreshNotifications() {
-            await loadNotifications();
-        }
-
-        // Load conversations from API
-        async function loadConversations() {
-            try {
-                const response = await fetch('/api/transcript/conversations');
-                const conversations = await response.json();
-                
-                const conversationList = document.getElementById('conversationList');
-                conversationList.innerHTML = '';
-                
-                if (conversations.length === 0) {
-                    conversationList.innerHTML = '<div class="no-data">会話履歴がありません</div>';
-                    return;
-                }
-
-                conversations.forEach(conversation => {
-                    const conversationItem = document.createElement('div');
-                    conversationItem.className = 'conversation-item';
-                    conversationItem.onclick = () => loadConversationHistory(conversation.conversationId);
-                    
-                    const lastActivity = new Date(conversation.lastActivity).toLocaleString('ja-JP');
-                    
-                    conversationItem.innerHTML = `
-                        <div class="conversation-id">📱 ${conversation.conversationId.substring(0, 20)}...</div>
-                        <div class="conversation-meta">
-                            <span>${conversation.messageCount} メッセージ</span>
-                            <span>${lastActivity}</span>
-                        </div>
-                    `;
-                    
-                    conversationList.appendChild(conversationItem);
-                });
-            } catch (error) {
-                console.error('Failed to load conversations:', error);
-            }
-        }
-
-        // Load conversation history
-        async function loadConversationHistory(conversationId) {
-            try {
-                const response = await fetch(`/api/transcript/history/${conversationId}?limit=50`);
-                const history = await response.json();
-                
-                const conversationList = document.getElementById('conversationList');
-                conversationList.innerHTML = `
-                    <button class="refresh-btn" onclick="loadConversations()" style="margin-bottom: 15px;">← 戻る</button>
-                `;
-                
-                if (history.length === 0) {
-                    conversationList.innerHTML += '<div class="no-data">メッセージがありません</div>';
-                    return;
-                }
-
-                history.forEach(message => {
-                    const messageItem = document.createElement('div');
-                    const isBot = message.from && message.from.includes('Agent');
-                    messageItem.className = `message-item ${isBot ? 'bot' : 'user'}`;
-                    
-                    const timestamp = new Date(message.timestamp).toLocaleTimeString('ja-JP');
-                    
-                    messageItem.innerHTML = `
-                        <div class="message-from">${message.from || 'Unknown'}</div>
-                        <div class="message-text">${message.text || '[No text]'}</div>
-                        <div class="message-timestamp">${timestamp}</div>
-                    `;
-                    
-                    conversationList.appendChild(messageItem);
-                });
-            } catch (error) {
-                console.error('Failed to load conversation history:', error);
-            }
-        }
-
-        // Refresh conversations
-        async function refreshConversations() {
-            await loadConversations();
-        }
-
-        // Auto refresh every 30 seconds
-        setInterval(async () => {
-            if (connection.state === signalR.HubConnectionState.Connected) {
-                await loadMetrics();
-            }
-        }, 30000);
-
-        // Start SignalR connection
+        // ========== Initialize ==========
         startConnection();
     </script>
 </body>
