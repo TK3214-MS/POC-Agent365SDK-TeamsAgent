@@ -14,6 +14,7 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using SalesSupportAgent.Bot;
 using SalesSupportAgent.Configuration;
+using SalesSupportAgent.Resources;
 using SalesSupportAgent.Services.Agent;
 using SalesSupportAgent.Services.LLM;
 using SalesSupportAgent.Services.MCP.McpTools;
@@ -31,6 +32,12 @@ builder.Services.Configure<BotSettings>(builder.Configuration.GetSection("Bot"))
 var llmSettings = builder.Configuration.GetSection("LLM").Get<LLMSettings>() ?? new LLMSettings();
 var m365Settings = builder.Configuration.GetSection("M365").Get<M365Settings>() ?? new M365Settings();
 var botSettings = builder.Configuration.GetSection("Bot").Get<BotSettings>() ?? new BotSettings();
+
+// ========================================
+// 多言語対応の初期化
+// ========================================
+var defaultLanguage = builder.Configuration["Localization:DefaultLanguage"] ?? "ja";
+LocalizedStrings.Current.SetLanguage(defaultLanguage);
 
 // ========================================
 // OpenTelemetry 設定（Agent365 対応）

@@ -1,6 +1,7 @@
 using AdaptiveCards;
 using Microsoft.Bot.Schema;
 using Newtonsoft.Json;
+using SalesSupportAgent.Resources;
 
 namespace SalesSupportAgent.Bot;
 
@@ -196,7 +197,7 @@ public static class AdaptiveCardHelper
         // フッター
         card.Body.Add(new AdaptiveTextBlock
         {
-            Text = $"🤖 powered by Agent 365 SDK | {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
+            Text = $"{LocalizedStrings.Current.PoweredBy} | {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
             Size = AdaptiveTextSize.Small,
             Color = AdaptiveTextColor.Default,
             IsSubtle = true,

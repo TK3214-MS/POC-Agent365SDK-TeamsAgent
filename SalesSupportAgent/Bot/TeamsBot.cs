@@ -1,6 +1,7 @@
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Schema;
 using SalesSupportAgent.Models;
+using SalesSupportAgent.Resources;
 using SalesSupportAgent.Services.Agent;
 
 namespace SalesSupportAgent.Bot;
@@ -51,7 +52,7 @@ public class TeamsBot : ActivityHandler
             var cardAttachment = AdaptiveCardHelper.CreateSalesSummaryCard(response.Response);
             
             var reply = MessageFactory.Attachment(cardAttachment);
-            reply.Text = $"⚡ 処理時間: {response.ProcessingTimeMs}ms | 🤖 {response.LLMProvider}";
+            reply.Text = $"{string.Format(LocalizedStrings.Current.ProcessingTime, response.ProcessingTimeMs)} | {string.Format(LocalizedStrings.Current.LLMProviderInfo, response.LLMProvider)}";
             
             await turnContext.SendActivityAsync(reply, cancellationToken);
 
@@ -63,8 +64,8 @@ public class TeamsBot : ActivityHandler
             
             // エラーも Adaptive Card で表示
             var errorCard = AdaptiveCardHelper.CreateAgentResponseCard(
-                "エラーが発生しました",
-                $"**エラー内容:**\n{ex.Message}\n\n**対処方法:**\n- appsettings.json の設定を確認してください\n- ログファイルで詳細を確認してください\n- Microsoft 365 の権限設定を確認してください",
+                LocalizedStrings.Current.ErrorOccurred,
+                string.Format(LocalizedStrings.Current.ErrorDetails, ex.Message),
                 isError: true
             );
             
@@ -79,26 +80,9 @@ public class TeamsBot : ActivityHandler
         {
             if (member.Id != turnContext.Activity.Recipient.Id)
             {
-                var welcomeContent = @"**できること:**
-- 📧 Outlook メールから商談関連情報を収集
-- 📅 カレンダーから商談予定を確認  
-- 📁 SharePoint から提案書・見積書を検索
-- 📢 Teams チャネルから商談関連の会話を抽出
-
-**使い方:**
-「今週の商談サマリを教えて」と話しかけてください。
-
-**例:**
-- 今週の商談サマリを教えて
-- 先週の重要な商談を教えて
-- 〇〇社に関する情報をまとめて
-
----
-⚠️ 初回利用時は、管理者が Microsoft 365 と Bot の設定を完了している必要があります。";
-
                 var welcomeCard = AdaptiveCardHelper.CreateAgentResponseCard(
-                    "👋 こんにちは！営業支援エージェントです",
-                    welcomeContent
+                    LocalizedStrings.Current.WelcomeTitle,
+                    LocalizedStrings.Current.WelcomeContent
                 );
                 
                 var welcomeReply = MessageFactory.Attachment(welcomeCard);

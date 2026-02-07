@@ -1,0 +1,79 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.0",
+  "id": "YOUR-BOT-APP-ID-HERE",
+  "packageName": "com.yourcompany.salessupportagent",
+  "developer": {
+    "name": "Your Company Name",
+    "websiteUrl": "https://www.example.com",
+    "privacyUrl": "https://www.example.com/privacy",
+    "termsOfUseUrl": "https://www.example.com/terms"
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "name": {
+    "short": "営業支援エージェント",
+    "full": "Agent 365 SDK 営業支援エージェント"
+  },
+  "description": {
+    "short": "商談サマリを自動生成",
+    "full": "Microsoft 365 データから商談関連情報を収集し、わかりやすいサマリを作成します。Outlook、SharePoint、Teams の情報を統合して営業活動を支援します。GitHub Models、Ollama、Azure OpenAI などの LLM に対応し、Agent 365 SDK による観測性とガバナンスを提供します。"
+  },
+  "accentColor": "#FFFFFF",
+  "bots": [
+    {
+      "botId": "YOUR-BOT-APP-ID-HERE",
+      "scopes": [
+        "personal",
+        "team",
+        "groupchat"
+      ],
+      "supportsFiles": false,
+      "isNotificationOnly": false,
+      "commandLists": [
+        {
+          "scopes": [
+            "personal",
+            "team",
+            "groupchat"
+          ],
+          "commands": [
+            {
+              "title": "今週の商談サマリ",
+              "description": "今週の商談関連情報をまとめます"
+            },
+            {
+              "title": "先週の商談サマリ",
+              "description": "先週の商談関連情報をまとめます"
+            },
+            {
+              "title": "顧客名で検索",
+              "description": "特定の顧客に関する情報を検索します"
+            },
+            {
+              "title": "ヘルプ",
+              "description": "使い方を表示します"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ],
+  "validDomains": [
+    "*.botframework.com",
+    "*.azurewebsites.net",
+    "*.devtunnels.ms",
+    "*.ngrok.io"
+  ],
+  "webApplicationInfo": {
+    "id": "YOUR-BOT-APP-ID-HERE",
+    "resource": "https://graph.microsoft.com"
+  }
+}

@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Azure.Identity;
 using Microsoft.Graph;
 using SalesSupportAgent.Configuration;
+using SalesSupportAgent.Resources;
 
 namespace SalesSupportAgent.Services.MCP.McpTools;
 
@@ -34,7 +35,7 @@ public class TeamsMessageTool
     {
         if (!_isConfigured)
         {
-            return "⚠️ Microsoft 365 が設定されていません。appsettings.json の M365 セクションを設定してください。";
+            return LocalizedStrings.Current.M365NotConfigured;
         }
 
         try

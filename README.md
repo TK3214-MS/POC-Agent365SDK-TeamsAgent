@@ -604,8 +604,9 @@ Managed Identity を使用すると、シークレット管理が不要になり
 - [GitHub Models セットアップガイド](docs/GITHUB-MODELS-SETUP.md) - 無料で最新 AI モデルを利用
 - [Adaptive Cards 実装ガイド](docs/ADAPTIVE-CARDS-GUIDE.md) - 視覚的な応答カードの作成方法
 - [SharePoint Search API ガイド](docs/SHAREPOINT-SEARCH-API.md) - Microsoft Search API による高度な検索
-- [Agent Identity 設定ガイド](docs/AGENT-IDENTITY-SETUP.md) - Microsoft 365 認証設定（作成予定）
-- [Teams Bot マニフェスト](docs/TEAMS-MANIFEST.md) - Teams アプリ設定（作成予定）
+- [Agent Identity 設定ガイド](docs/AGENT-IDENTITY-SETUP.md) - Microsoft 365 認証設定 ✅
+- [Teams Bot マニフェスト](docs/TEAMS-MANIFEST.md) - Teams アプリ設定 ✅
+- [多言語対応ガイド](docs/LOCALIZATION.md) - 日本語・英語切り替え ✅
 
 ---
 
@@ -638,18 +639,26 @@ Managed Identity を使用すると、シークレット管理が不要になり
   - ウェルカムカード（初回ガイダンス）
   - タイムスタンプ・LLM プロバイダー情報表示
 
+  - [x] **多言語対応（日本語・英語）** (2026-02)
+    - LocalizedStrings による文字列管理
+    - 設定ファイルでの言語切り替え
+    - 日本語と英語の完全サポート
+  - [x] **ユニットテストフレームワーク** (2026-02)
+    - xUnit + Moq を使用
+    - Adaptive Card、設定クラス、モデルのテスト実装
+    - カバレッジレポート対応
+
 ### 🚧 進行中
 
 なし
 
 ### 📋 計画中
 
-- [ ] 多言語対応（英語・日本語切り替え）
-- [ ] カスタム MCP サーバーの追加
-- [ ] Azure にデプロイするための Dockerfile
 - [ ] CI/CD パイプライン設定（GitHub Actions）
+- [ ] Dockerfile と Azure デプロイ設定
 - [ ] Application Insights への直接統合
-- [ ] ユニットテスト・統合テストの追加
+- [ ] カスタム MCP サーバーの追加
+- [ ] MCPツールの統合テスト
 
 ---
 
