@@ -1,31 +1,31 @@
 {
-  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
-  "manifestVersion": "1.17",
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
   "version": "1.0.0",
-  "id": "YOUR-BOT-APP-ID-HERE",
-  "packageName": "com.yourcompany.salessupportagent",
+  "id": "e9b14ac6-2820-446e-827c-e1ba086b5389",
+  "packageName": "com.plaisports.salessupportagent",
   "developer": {
-    "name": "Your Company Name",
-    "websiteUrl": "https://www.example.com",
-    "privacyUrl": "https://www.example.com/privacy",
-    "termsOfUseUrl": "https://www.example.com/terms"
+    "name": "plAi Sports",
+    "websiteUrl": "https://plaisports.cloud",
+    "privacyUrl": "https://plaisports.cloud/privacy",
+    "termsOfUseUrl": "https://plaisports.cloud/terms"
   },
   "icons": {
     "color": "color.png",
     "outline": "outline.png"
   },
   "name": {
-    "short": "営業支援エージェント",
-    "full": "Agent 365 SDK 営業支援エージェント"
+    "short": "営業支援Bot",
+    "full": "営業支援エージェント"
   },
   "description": {
     "short": "商談サマリを自動生成",
-    "full": "Microsoft 365 データから商談関連情報を収集し、わかりやすいサマリを作成します。Outlook、SharePoint、Teams の情報を統合して営業活動を支援します。GitHub Models、Ollama、Azure OpenAI などの LLM に対応し、Agent 365 SDK による観測性とガバナンスを提供します。"
+    "full": "Microsoft 365データから商談関連情報を収集し、わかりやすいサマリを作成します。"
   },
-  "accentColor": "#FFFFFF",
+  "accentColor": "#0078D4",
   "bots": [
     {
-      "botId": "YOUR-BOT-APP-ID-HERE",
+      "botId": "e9b14ac6-2820-446e-827c-e1ba086b5389",
       "scopes": [
         "personal",
         "team",
@@ -67,13 +67,8 @@
     "messageTeamMembers"
   ],
   "validDomains": [
-    "*.botframework.com",
-    "*.azurewebsites.net",
-    "*.devtunnels.ms",
-    "*.ngrok.io"
-  ],
-  "webApplicationInfo": {
-    "id": "YOUR-BOT-APP-ID-HERE",
-    "resource": "https://graph.microsoft.com"
-  }
+    "botframework.com",
+    "azurewebsites.net",
+    "devtunnels.ms"
+  ]
 }

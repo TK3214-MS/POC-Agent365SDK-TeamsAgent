@@ -3,6 +3,7 @@ using Microsoft.Bot.Schema;
 using SalesSupportAgent.Models;
 using SalesSupportAgent.Resources;
 using SalesSupportAgent.Services.Agent;
+using SalesSupportAgent.Services.Transcript;
 
 namespace SalesSupportAgent.Bot;
 
@@ -13,10 +14,15 @@ public class TeamsBot : ActivityHandler
 {
     private readonly SalesAgent _salesAgent;
     private readonly ILogger<TeamsBot> _logger;
+    private readonly TranscriptService _transcriptService;
 
-    public TeamsBot(SalesAgent salesAgent, ILogger<TeamsBot> logger)
+    public TeamsBot(
+        SalesAgent salesAgent, 
+        TranscriptService transcriptService,
+        ILogger<TeamsBot> logger)
     {
         _salesAgent = salesAgent ?? throw new ArgumentNullException(nameof(salesAgent));
+        _transcriptService = transcriptService ?? throw new ArgumentNullException(nameof(transcriptService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -33,6 +39,10 @@ public class TeamsBot : ActivityHandler
         _logger.LogInformation("Teams メッセージ受信: {Message} (User: {UserId})", 
             userMessage, turnContext.Activity.From?.Id);
 
+        // 会話記録: ユーザーメッセージ
+        var conversationId = turnContext.Activity.Conversation?.Id ?? "unknown";
+        await _transcriptService.LogActivityAsync(turnContext.Activity, conversationId);
+
         try
         {
             // タイピングインジケーターを表示
@@ -48,13 +58,25 @@ public class TeamsBot : ActivityHandler
 
             var response = await _salesAgent.GenerateSalesSummaryAsync(request);
 
-            // Adaptive Card で応答
-            var cardAttachment = AdaptiveCardHelper.CreateSalesSummaryCard(response.Response);
+            // Adaptive Card で応答（LLMプロバイダーと処理時間を含む）
+            var cardAttachment = AdaptiveCardHelper.CreateSalesSummaryCard(
+                response.Response,
+                llmProvider: response.LLMProvider,
+                processingTime: response.ProcessingTimeMs
+            );
             
             var reply = MessageFactory.Attachment(cardAttachment);
-            reply.Text = $"{string.Format(LocalizedStrings.Current.ProcessingTime, response.ProcessingTimeMs)} | {string.Format(LocalizedStrings.Current.LLMProviderInfo, response.LLMProvider)}";
             
             await turnContext.SendActivityAsync(reply, cancellationToken);
+
+            // 会話記録: Bot応答
+            var botActivity = reply as Activity;
+            if (botActivity != null)
+            {
+                botActivity.From = new ChannelAccount { Name = "SalesSupportAgent" };
+                botActivity.Text = $"[Adaptive Card Response] {response.Response.Substring(0, Math.Min(100, response.Response.Length))}...";
+                await _transcriptService.LogActivityAsync(botActivity, conversationId);
+            }
 
             _logger.LogInformation("Teams 応答送信完了 (Adaptive Card): {ProcessingTime}ms", response.ProcessingTimeMs);
         }

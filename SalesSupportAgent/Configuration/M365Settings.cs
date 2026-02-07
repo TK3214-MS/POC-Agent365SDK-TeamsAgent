@@ -26,6 +26,11 @@ public class M365Settings
     public bool UseManagedIdentity { get; set; } = false;
 
     /// <summary>
+    /// アクセス対象のユーザー ID (Agent Identity 使用時に必要)
+    /// </summary>
+    public string UserId { get; set; } = string.Empty;
+
+    /// <summary>
     /// Graph API のスコープ (デフォルト: .default)
     /// </summary>
     public string[] Scopes { get; set; } = new[] { "https://graph.microsoft.com/.default" };

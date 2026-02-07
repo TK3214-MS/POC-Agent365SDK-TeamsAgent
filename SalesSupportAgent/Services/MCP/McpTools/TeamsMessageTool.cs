@@ -13,11 +13,14 @@ public class TeamsMessageTool
 {
     private readonly GraphServiceClient _graphClient;
     private readonly bool _isConfigured;
+    private readonly string _userId;
 
     public TeamsMessageTool(GraphServiceClient graphClient, M365Settings settings)
     {
-        _graphClient = graphClient;
+        _graphClient = graphClient ?? throw new ArgumentNullException(nameof(graphClient));
+        ArgumentNullException.ThrowIfNull(settings);
         _isConfigured = settings.IsConfigured;
+        _userId = settings.UserId;
     }
 
     /// <summary>
@@ -43,7 +46,7 @@ public class TeamsMessageTool
             // Team ID が指定されていない場合は、ユーザーが参加している Teams を取得
             if (string.IsNullOrEmpty(teamId))
             {
-                var teams = await _graphClient.Me.JoinedTeams.GetAsync();
+                var teams = await _graphClient.Users[_userId].JoinedTeams.GetAsync();
                 
                 if (teams?.Value == null || teams.Value.Count == 0)
                 {

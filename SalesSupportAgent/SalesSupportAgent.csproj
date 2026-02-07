@@ -1,13 +1,15 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>9b970a2c-0ea5-4bba-aded-7593b60a7993</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="AdaptiveCards" Version="3.1.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.70.0" />
     <PackageReference Include="AdaptiveCards.Templating" Version="2.0.5" />
     <PackageReference Include="Azure.AI.OpenAI" Version="2.3.0-beta.2" />
     <PackageReference Include="Azure.Identity" Version="1.17.1" />

@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.AI;
+using Microsoft.Graph;
 using Moq;
+using SalesSupportAgent.Configuration;
 using SalesSupportAgent.Models;
 using SalesSupportAgent.Services.Agent;
 using SalesSupportAgent.Services.LLM;
@@ -16,14 +18,23 @@ public class SalesAgentTests
     private readonly Mock<SharePointTool> _mockSharePointTool;
     private readonly Mock<TeamsMessageTool> _mockTeamsTool;
     private readonly Mock<ILogger<SalesAgent>> _mockLogger;
+    private readonly GraphServiceClient _mockGraphClient;
+    private readonly M365Settings _mockSettings;
 
     public SalesAgentTests()
     {
         _mockLlmProvider = new Mock<ILLMProvider>();
-        _mockEmailTool = new Mock<OutlookEmailTool>(null, null);
-        _mockCalendarTool = new Mock<OutlookCalendarTool>(null, null);
-        _mockSharePointTool = new Mock<SharePointTool>(null, null);
-        _mockTeamsTool = new Mock<TeamsMessageTool>(null, null);
+        
+        // GraphServiceClient と M365Settings の有効なインスタンスを作成
+        // HttpClientでGraphServiceClientを作成（テスト用の最小構成）
+        _mockGraphClient = new GraphServiceClient(new HttpClient());
+        _mockSettings = new M365Settings();
+        
+        // MCP Tools のモックを有効な引数で作成
+        _mockEmailTool = new Mock<OutlookEmailTool>(_mockGraphClient, _mockSettings);
+        _mockCalendarTool = new Mock<OutlookCalendarTool>(_mockGraphClient, _mockSettings);
+        _mockSharePointTool = new Mock<SharePointTool>(_mockGraphClient, _mockSettings);
+        _mockTeamsTool = new Mock<TeamsMessageTool>(_mockGraphClient, _mockSettings);
         _mockLogger = new Mock<ILogger<SalesAgent>>();
     }
 
@@ -35,7 +46,7 @@ public class SalesAgentTests
             null!,
             _mockEmailTool.Object,
             _mockCalendarTool.Object,
-            _mockShare PointTool.Object,
+            _mockSharePointTool.Object,
             _mockTeamsTool.Object,
             _mockLogger.Object
         ));

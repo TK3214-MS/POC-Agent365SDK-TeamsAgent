@@ -14,11 +14,14 @@ public class OutlookCalendarTool
 {
     private readonly GraphServiceClient _graphClient;
     private readonly bool _isConfigured;
+    private readonly string _userId;
 
     public OutlookCalendarTool(GraphServiceClient graphClient, M365Settings settings)
     {
-        _graphClient = graphClient;
+        _graphClient = graphClient ?? throw new ArgumentNullException(nameof(graphClient));
+        ArgumentNullException.ThrowIfNull(settings);
         _isConfigured = settings.IsConfigured;
+        _userId = settings.UserId;
     }
 
     /// <summary>
@@ -41,16 +44,16 @@ public class OutlookCalendarTool
 
         try
         {
-            var start = DateTime.Parse(startDate);
-            var end = DateTime.Parse(endDate);
+            var start = DateTime.SpecifyKind(DateTime.Parse(startDate), DateTimeKind.Utc);
+            var end = DateTime.SpecifyKind(DateTime.Parse(endDate).AddDays(1), DateTimeKind.Utc); // 終了日を含めるため+1日
 
-            // カレンダービューで予定を取得
-            var events = await _graphClient.Me.CalendarView
+            // Agent Identity を使用して特定ユーザーのカレンダーにアクセス
+            var events = await _graphClient.Users[_userId].CalendarView
                 .GetAsync(config =>
                 {
                     config.QueryParameters.StartDateTime = start.ToString("yyyy-MM-ddTHH:mm:ssZ");
                     config.QueryParameters.EndDateTime = end.ToString("yyyy-MM-ddTHH:mm:ssZ");
-                    config.QueryParameters.Select = new[] { "subject", "start", "end", "location", "attendees", "organizer" };
+                    config.QueryParameters.Select = new[] { "subject", "start", "end", "location", "attendees", "organizer", "categories" };
                     config.QueryParameters.Orderby = new[] { "start/dateTime" };
                 });
 
@@ -59,11 +62,12 @@ public class OutlookCalendarTool
                 return $"📅 期間 {startDate} ~ {endDate} のカレンダー予定は見つかりませんでした。";
             }
 
-            // キーワードでフィルタリング
+            // キーワードでフィルタリング（件名、カテゴリを対象）
             var keywordList = keywords.Split(',').Select(k => k.Trim()).ToList();
             var filteredEvents = events.Value
                 .Where(e => keywordList.Any(k => 
-                    e.Subject?.Contains(k, StringComparison.OrdinalIgnoreCase) == true))
+                    e.Subject?.Contains(k, StringComparison.OrdinalIgnoreCase) == true ||
+                    e.Categories?.Any(c => c.Contains(k, StringComparison.OrdinalIgnoreCase)) == true))
                 .ToList();
 
             if (filteredEvents.Count == 0)

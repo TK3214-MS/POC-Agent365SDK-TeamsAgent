@@ -14,11 +14,14 @@ public class OutlookEmailTool
 {
     private readonly GraphServiceClient _graphClient;
     private readonly bool _isConfigured;
+    private readonly string _userId;
 
     public OutlookEmailTool(GraphServiceClient graphClient, M365Settings settings)
     {
-        _graphClient = graphClient;
+        _graphClient = graphClient ?? throw new ArgumentNullException(nameof(graphClient));
+        ArgumentNullException.ThrowIfNull(settings);
         _isConfigured = settings.IsConfigured;
+        _userId = settings.UserId;
     }
 
     /// <summary>
@@ -41,17 +44,16 @@ public class OutlookEmailTool
 
         try
         {
-            var start = DateTime.Parse(startDate);
-            var end = DateTime.Parse(endDate);
+            var start = DateTime.SpecifyKind(DateTime.Parse(startDate), DateTimeKind.Utc);
+            var end = DateTime.SpecifyKind(DateTime.Parse(endDate).AddDays(1), DateTimeKind.Utc); // 終了日を含めるため+1日
 
-            // Agent Identity を使用してメールボックスにアクセス
-            // 注: 実際には適切なメールボックス (ユーザー または 共有メールボックス) を指定
-            var messages = await _graphClient.Me.Messages
+            // Agent Identity を使用して特定ユーザーのメールボックスにアクセス
+            var messages = await _graphClient.Users[_userId].Messages
                 .GetAsync(config =>
                 {
                     config.QueryParameters.Filter = $"receivedDateTime ge {start:yyyy-MM-ddTHH:mm:ssZ} and receivedDateTime le {end:yyyy-MM-ddTHH:mm:ssZ}";
                     config.QueryParameters.Top = 50;
-                    config.QueryParameters.Select = new[] { "subject", "from", "receivedDateTime", "bodyPreview", "hasAttachments" };
+                    config.QueryParameters.Select = new[] { "subject", "from", "receivedDateTime", "bodyPreview", "hasAttachments", "categories" };
                     config.QueryParameters.Orderby = new[] { "receivedDateTime desc" };
                 });
 
@@ -60,12 +62,13 @@ public class OutlookEmailTool
                 return $"📧 期間 {startDate} ~ {endDate} の商談関連メールは見つかりませんでした。";
             }
 
-            // キーワードでフィルタリング
+            // キーワードでフィルタリング（件名、本文、カテゴリを対象）
             var keywordList = keywords.Split(',').Select(k => k.Trim()).ToList();
             var filteredMessages = messages.Value
                 .Where(m => keywordList.Any(k => 
                     m.Subject?.Contains(k, StringComparison.OrdinalIgnoreCase) == true ||
-                    m.BodyPreview?.Contains(k, StringComparison.OrdinalIgnoreCase) == true))
+                    m.BodyPreview?.Contains(k, StringComparison.OrdinalIgnoreCase) == true ||
+                    m.Categories?.Any(c => c.Contains(k, StringComparison.OrdinalIgnoreCase)) == true))
                 .ToList();
 
             if (filteredMessages.Count == 0)

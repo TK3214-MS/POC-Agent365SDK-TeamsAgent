@@ -19,7 +19,8 @@ public class SharePointTool
 
     public SharePointTool(GraphServiceClient graphClient, M365Settings settings)
     {
-        _graphClient = graphClient;
+        _graphClient = graphClient ?? throw new ArgumentNullException(nameof(graphClient));
+        ArgumentNullException.ThrowIfNull(settings);
         _isConfigured = settings.IsConfigured;
     }
 

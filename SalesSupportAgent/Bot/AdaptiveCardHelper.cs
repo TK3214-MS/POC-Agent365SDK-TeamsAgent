@@ -114,11 +114,13 @@ public static class AdaptiveCardHelper
     }
 
     /// <summary>
-    /// 営業サマリー専用の Adaptive Card を生成
+    /// 営業サマリー専用の Adaptive Card を生成（強化版）
     /// </summary>
     /// <param name="summary">営業サマリーコンテンツ</param>
+    /// <param name="llmProvider">LLMプロバイダー名</param>
+    /// <param name="processingTime">処理時間（ミリ秒）</param>
     /// <returns>Attachment として返せる Adaptive Card</returns>
-    public static Attachment CreateSalesSummaryCard(string summary)
+    public static Attachment CreateSalesSummaryCard(string summary, string? llmProvider = null, long? processingTime = null)
     {
         // サマリーをセクション分割（Markdown のヘッダーで分割）
         var sections = ParseSummaryIntoSections(summary);
@@ -127,34 +129,48 @@ public static class AdaptiveCardHelper
         {
             Body = new List<AdaptiveElement>
             {
-                // ヘッダー
-                new AdaptiveColumnSet
+                // ヘッダー（グラデーション背景風）
+                new AdaptiveContainer
                 {
-                    Columns = new List<AdaptiveColumn>
+                    Style = AdaptiveContainerStyle.Emphasis,
+                    Items = new List<AdaptiveElement>
                     {
-                        new AdaptiveColumn
+                        new AdaptiveColumnSet
                         {
-                            Width = AdaptiveColumnWidth.Auto,
-                            Items = new List<AdaptiveElement>
+                            Columns = new List<AdaptiveColumn>
                             {
-                                new AdaptiveImage
+                                new AdaptiveColumn
                                 {
-                                    Url = new Uri("https://adaptivecards.io/content/chart.png"),
-                                    Size = AdaptiveImageSize.Small
-                                }
-                            }
-                        },
-                        new AdaptiveColumn
-                        {
-                            Width = AdaptiveColumnWidth.Stretch,
-                            Items = new List<AdaptiveElement>
-                            {
-                                new AdaptiveTextBlock
+                                    Width = AdaptiveColumnWidth.Auto,
+                                    Items = new List<AdaptiveElement>
+                                    {
+                                        new AdaptiveTextBlock
+                                        {
+                                            Text = "🤖",
+                                            Size = AdaptiveTextSize.ExtraLarge
+                                        }
+                                    }
+                                },
+                                new AdaptiveColumn
                                 {
-                                    Text = "📊 営業支援エージェント - サマリーレポート",
-                                    Weight = AdaptiveTextWeight.Bolder,
-                                    Size = AdaptiveTextSize.Large,
-                                    Wrap = true
+                                    Width = AdaptiveColumnWidth.Stretch,
+                                    Items = new List<AdaptiveElement>
+                                    {
+                                        new AdaptiveTextBlock
+                                        {
+                                            Text = "営業支援エージェント",
+                                            Weight = AdaptiveTextWeight.Bolder,
+                                            Size = AdaptiveTextSize.Large,
+                                            Wrap = true
+                                        },
+                                        new AdaptiveTextBlock
+                                        {
+                                            Text = "Agent 365 SDK | サマリーレポート",
+                                            Size = AdaptiveTextSize.Small,
+                                            IsSubtle = true,
+                                            Spacing = AdaptiveSpacing.None
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -169,47 +185,141 @@ public static class AdaptiveCardHelper
             }
         };
 
-        // 各セクションを Adaptive Card のコンテナとして追加
+        // 各セクションを色分けして追加
+        var sectionIndex = 0;
         foreach (var section in sections)
         {
-            // セクションタイトルがある場合
+            var sectionIcon = GetSectionIcon(section.Title);
+            var containerStyle = GetSectionStyle(sectionIndex);
+
+            var sectionContainer = new AdaptiveContainer
+            {
+                Style = containerStyle,
+                Spacing = AdaptiveSpacing.Medium,
+                Items = new List<AdaptiveElement>()
+            };
+
+            // セクションタイトル（アイコン付き）
             if (!string.IsNullOrEmpty(section.Title))
             {
-                card.Body.Add(new AdaptiveTextBlock
+                sectionContainer.Items.Add(new AdaptiveTextBlock
                 {
-                    Text = section.Title,
+                    Text = $"{sectionIcon} {section.Title}",
                     Weight = AdaptiveTextWeight.Bolder,
                     Size = AdaptiveTextSize.Medium,
-                    Wrap = true,
-                    Spacing = AdaptiveSpacing.Medium
+                    Wrap = true
                 });
             }
 
             // セクション内容
-            card.Body.Add(new AdaptiveTextBlock
+            sectionContainer.Items.Add(new AdaptiveTextBlock
             {
                 Text = section.Content,
                 Wrap = true,
                 Spacing = AdaptiveSpacing.Small
             });
+
+            card.Body.Add(sectionContainer);
+            sectionIndex++;
         }
 
-        // フッター
-        card.Body.Add(new AdaptiveTextBlock
+        // 統計情報（Fact Set）
+        var facts = new List<AdaptiveFact>
         {
-            Text = $"{LocalizedStrings.Current.PoweredBy} | {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
-            Size = AdaptiveTextSize.Small,
-            Color = AdaptiveTextColor.Default,
-            IsSubtle = true,
+            new AdaptiveFact
+            {
+                Title = "データソース",
+                Value = $"{sections.Count} セクション"
+            },
+            new AdaptiveFact
+            {
+                Title = "生成日時",
+                Value = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss")
+            }
+        };
+
+        if (!string.IsNullOrEmpty(llmProvider))
+        {
+            facts.Insert(0, new AdaptiveFact
+            {
+                Title = "LLM",
+                Value = llmProvider
+            });
+        }
+
+        if (processingTime.HasValue)
+        {
+            facts.Add(new AdaptiveFact
+            {
+                Title = "処理時間",
+                Value = $"{processingTime.Value:N0}ms ({processingTime.Value / 1000.0:F2}秒)"
+            });
+        }
+
+        card.Body.Add(new AdaptiveFactSet
+        {
+            Facts = facts,
             Spacing = AdaptiveSpacing.Medium,
             Separator = true
         });
+
+        // アクションボタン
+        card.Actions = new List<AdaptiveAction>
+        {
+            new AdaptiveOpenUrlAction
+            {
+                Title = "📧 Outlookを開く",
+                Url = new Uri("https://outlook.office.com")
+            },
+            new AdaptiveOpenUrlAction
+            {
+                Title = "📅 カレンダーを開く",
+                Url = new Uri("https://outlook.office.com/calendar")
+            },
+            new AdaptiveOpenUrlAction
+            {
+                Title = "📁 SharePointを開く",
+                Url = new Uri("https://www.office.com/launch/sharepoint")
+            }
+        };
 
         return new Attachment
         {
             ContentType = AdaptiveCard.ContentType,
             Content = JsonConvert.DeserializeObject(card.ToJson())
         };
+    }
+
+    /// <summary>
+    /// セクションタイトルに基づいてアイコンを取得
+    /// </summary>
+    private static string GetSectionIcon(string? title)
+    {
+        if (string.IsNullOrEmpty(title))
+            return "📄";
+
+        var lowerTitle = title.ToLower();
+        if (lowerTitle.Contains("メール") || lowerTitle.Contains("email"))
+            return "📧";
+        if (lowerTitle.Contains("カレンダー") || lowerTitle.Contains("予定") || lowerTitle.Contains("calendar"))
+            return "📅";
+        if (lowerTitle.Contains("sharepoint") || lowerTitle.Contains("ドキュメント") || lowerTitle.Contains("文書"))
+            return "📁";
+        if (lowerTitle.Contains("teams") || lowerTitle.Contains("メッセージ") || lowerTitle.Contains("チャット"))
+            return "💬";
+        if (lowerTitle.Contains("サマリー") || lowerTitle.Contains("まとめ") || lowerTitle.Contains("summary"))
+            return "📊";
+
+        return "📄";
+    }
+
+    /// <summary>
+    /// セクションインデックスに基づいてスタイルを取得
+    /// </summary>
+    private static AdaptiveContainerStyle GetSectionStyle(int index)
+    {
+        // 交互に色を変える
+        return index % 2 == 0 ? AdaptiveContainerStyle.Default : AdaptiveContainerStyle.Emphasis;
     }
 
     /// <summary>
