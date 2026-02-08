@@ -130,7 +130,61 @@ curl https://localhost:5192/health
 
 ---
 
-## � ドキュメント
+## 👥 あなたに合ったドキュメントを選択
+
+このプロジェクトには、異なるペルソナ（役割）に特化したドキュメントが用意されています。あなたの目的に合わせて、最適なドキュメントセットを選択してください。
+
+### 🎓 初めて使う方・運用担当者向け
+
+まずはAgentを動かしてみたい、Teams統合を試したい方はこちら：
+
+- ✅ [スタートガイド（初心者向け）](docs/GETTING-STARTED.md) - 最初に読むべきドキュメント
+- ✅ [認証設定](docs/AUTHENTICATION.md) - Azure AD App Registration、権限設定
+- ✅ [Dev Tunnel設定](docs/DEV-TUNNEL-SETUP.md) - ローカル→Teams接続
+- ✅ [Teams統合](docs/TEAMS-MANIFEST.md) - Botマニフェスト、サイドロード
+- ✅ [サンプルデータ作成](docs/SAMPLE-DATA.md) - テストデータ生成
+- ✅ [Observability Dashboard](docs/OBSERVABILITY-DASHBOARD.md) - リアルタイム監視
+- ✅ [トラブルシューティング](docs/TROUBLESHOOTING.md) - よくある問題と解決方法
+
+### 👨‍💻 開発者向け（コードを理解したい方）
+
+SDK統合方法、コードレベルの理解を深めたい方はこちら：
+
+#### 📚 基礎理解
+
+- ✅ [SDK概要](docs/developer/01-SDK-OVERVIEW.md) - **最初に読む**: Microsoft 365 SDK、Agent 365 SDK、Microsoft.Extensions.AI の全体像
+- ✅ [プロジェクト構造](docs/developer/02-PROJECT-STRUCTURE.md) - ディレクトリ構成、ファイル配置
+- ✅ [依存性注入](docs/developer/05-DEPENDENCY-INJECTION.md) - DIコンテナの設計と使用
+
+#### 🔐 認証とデータフロー
+
+- ✅ [認証フロー](docs/developer/03-AUTHENTICATION-FLOW.md) - **重要**: Application-only認証の詳細解説、TokenCredential実装
+- ✅ [データフロー](docs/developer/04-DATA-FLOW.md) - Graph API → LLM → Response の完全なフロー
+- ✅ [SDK統合パターン](docs/developer/06-SDK-INTEGRATION-PATTERNS.md) - ベストプラクティスとデザインパターン
+
+#### 🛠️ 実装詳細
+
+- ✅ [エラーハンドリング](docs/developer/07-ERROR-HANDLING.md) - エラー種別と処理戦略
+- ✅ [ロギング・テレメトリ](docs/developer/08-LOGGING-TELEMETRY.md) - 構造化ロギング、OpenTelemetry統合
+- ✅ [テスト戦略](docs/developer/09-TESTING-STRATEGIES.md) - ユニット、統合、E2Eテスト
+- ✅ [パフォーマンス最適化](docs/developer/10-PERFORMANCE-OPTIMIZATION.md) - Graph API最適化、並列実行
+- ✅ [セキュリティ](docs/developer/11-SECURITY-BEST-PRACTICES.md) - Managed Identity、シークレット管理
+- ✅ [拡張性](docs/developer/12-EXTENSIBILITY.md) - 新しいツール追加、LLMプロバイダー追加
+
+#### 📖 コードウォークスルー
+
+- ✅ [会話フロー詳細](docs/developer/13-CODE-WALKTHROUGHS/CONVERSATION-FLOW.md) - エンドツーエンドの実行フロー
+- ✅ [Graph API呼び出し](docs/developer/13-CODE-WALKTHROUGHS/GRAPH-API-CALLS.md) - パターン別Graph API使用例
+- ✅ [LLM推論プロセス](docs/developer/13-CODE-WALKTHROUGHS/LLM-INFERENCE.md) - Tool Calling、ストリーミング応答
+
+#### 📋 リファレンス
+
+- ✅ [API リファレンス](docs/developer/14-API-REFERENCE.md) - 主要クラスとインターフェース
+- ✅ [マイグレーションガイド](docs/developer/15-MIGRATION-GUIDES.md) - .NET 8 → .NET 10 移行手順
+
+---
+
+## 📖 ドキュメント（カテゴリ別）
 
 ### 🎓 セットアップガイド
 
