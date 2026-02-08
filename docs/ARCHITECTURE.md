@@ -42,7 +42,7 @@ graph TB
         P[📁 SharePoint]
         Q[💬 Teams]
     end
-    A -->|@メンション| C
+    A -->|メンション| C
     C --> D
     D --> E
     E --> F

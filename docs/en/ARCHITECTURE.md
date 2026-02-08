@@ -42,7 +42,7 @@ graph TB
         P[📁 SharePoint]
         Q[💬 Teams]
     end
-    A -->|@mention| C
+    A -->|mention| C
     C --> D
     D --> E
     E --> F
