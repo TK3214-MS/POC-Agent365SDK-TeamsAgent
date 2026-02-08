@@ -75,7 +75,7 @@ Teams チャットで「@営業支援エージェント、今週の商談サマ�
 ### 前提条件
 
 | 必須 | 推奨・環境 |
-|-----||---------|
+|------|---------|
 | ✅ **.NET 10 SDK** | [ダウンロード](https://dotnet.microsoft.com/download/dotnet/10.0) |
 | ✅ **LLM Provider** | Azure OpenAI / Ollama / その他 |
 | ✅ **Microsoft 365 テナント** | [開発者プログラム](https://developer.microsoft.com/microsoft-365/dev-program) |
