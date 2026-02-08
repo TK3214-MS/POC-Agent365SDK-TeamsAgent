@@ -1,6 +1,7 @@
 # Getting Started - 営業支援エージェント
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/GETTING-STARTED.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../GETTING-STARTED.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](en/GETTING-STARTED.md)
 
 ## 📋 はじめに
 

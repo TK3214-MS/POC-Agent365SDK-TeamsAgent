@@ -1,6 +1,7 @@
 # Azure Production Environment Deployment Guide
 
-> **Language**: [🇯🇵 日本語](../DEPLOYMENT-AZURE.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../DEPLOYMENT-AZURE.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](DEPLOYMENT-AZURE.md)
 
 ## 📋 Overview
 

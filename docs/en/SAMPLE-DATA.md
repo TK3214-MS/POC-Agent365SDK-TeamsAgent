@@ -1,6 +1,7 @@
 # Sample Data Creation Guide
 
-> **Language**: [🇯🇵 日本語](../SAMPLE-DATA.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../SAMPLE-DATA.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](SAMPLE-DATA.md)
 
 ## 📋 Overview
 

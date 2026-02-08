@@ -1,6 +1,7 @@
 # トラブルシューティングガイド
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/TROUBLESHOOTING.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../TROUBLESHOOTING.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](en/TROUBLESHOOTING.md)
 
 ## 📋 概要
 

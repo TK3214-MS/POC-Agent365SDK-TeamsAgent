@@ -1,6 +1,7 @@
 # SDK Overview - Sales Support Agent Developer Guide
 
-> **Language**: [🇯🇵 日本語](../../developer/01-SDK-OVERVIEW.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../developer/01-SDK-OVERVIEW.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](01-SDK-OVERVIEW.md)
 
 ## 📋 Table of Contents
 

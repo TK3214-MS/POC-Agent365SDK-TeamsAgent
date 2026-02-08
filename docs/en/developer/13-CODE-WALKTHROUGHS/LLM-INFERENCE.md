@@ -1,6 +1,7 @@
 # LLM Inference Walkthrough
 
-> **Language**: [🇯🇵 日本語](../../../developer/13-CODE-WALKTHROUGHS/LLM-INFERENCE.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../../developer/13-CODE-WALKTHROUGHS/LLM-INFERENCE.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](LLM-INFERENCE.md)
 
 ## 📋 Overview
 

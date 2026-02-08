@@ -1,6 +1,7 @@
 # Testing Strategy Guide
 
-> **Language**: [🇯🇵 日本語](../TESTING.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../TESTING.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](TESTING.md)
 
 **Sales Support Agent Quality Assurance** - Implementation of unit tests, integration tests, and E2E tests
 

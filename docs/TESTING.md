@@ -1,6 +1,7 @@
 # テスト戦略ガイド
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/TESTING.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../TESTING.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](en/TESTING.md)
 
 **営業支援エージェントの品質保証** - ユニットテスト、統合テスト、E2Eテストの実装
 

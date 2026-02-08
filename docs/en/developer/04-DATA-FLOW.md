@@ -1,6 +1,7 @@
 # Data Flow - Graph API → LLM → Response Details
 
-> **Language**: [🇯🇵 日本語](../../developer/04-DATA-FLOW.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../developer/04-DATA-FLOW.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](04-DATA-FLOW.md)
 
 ## 📋 Table of Contents
 

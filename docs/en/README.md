@@ -1,6 +1,7 @@
 # Sales Support Agent
 
-> **Language**: [🇯🇵 日本語](../README.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../README.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](README.md)
 
 **Microsoft Agent 365 SDK Demo Application** - AI Agent Leveraging Microsoft 365 Data
 

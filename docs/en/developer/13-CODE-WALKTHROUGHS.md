@@ -1,6 +1,7 @@
 # Code Walkthroughs
 
-> **Language**: [🇯🇵 日本語](../../developer/13-CODE-WALKTHROUGHS.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../developer/13-CODE-WALKTHROUGHS.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](13-CODE-WALKTHROUGHS.md)
 
 ## 📋 Available Walkthroughs
 
@@ -65,4 +66,4 @@ SalesAgent.RunAsync → IChatClient → LLM Provider (Azure OpenAI/Ollama)
 
 ---
 
-For detailed step-by-step code walkthroughs with line-by-line explanations, please refer to the individual walkthrough documents in the [13-CODE-WALKTHROUGHS](../developer/13-CODE-WALKTHROUGHS) directory or the Japanese version at [../developer/13-CODE-WALKTHROUGHS.md](../../developer/13-CODE-WALKTHROUGHS.md).
+For detailed step-by-step code walkthroughs with line-by-line explanations, please refer to the individual walkthrough documents in the [13-CODE-WALKTHROUGHS](./13-CODE-WALKTHROUGHS) directory. For the Japanese version, see [こちら](../../developer/13-CODE-WALKTHROUGHS.md).

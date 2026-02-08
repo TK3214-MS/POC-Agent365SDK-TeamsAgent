@@ -1,6 +1,7 @@
 # Error Handling - Exception Management and Resilience
 
-> **Language**: [🇯🇵 日本語](../../developer/07-ERROR-HANDLING.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../developer/07-ERROR-HANDLING.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](07-ERROR-HANDLING.md)
 
 ## 📋 Key Topics
 

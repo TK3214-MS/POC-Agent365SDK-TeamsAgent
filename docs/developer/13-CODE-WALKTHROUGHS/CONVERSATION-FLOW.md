@@ -1,6 +1,7 @@
 # Conversation Flow - 会話フロー詳細ウォークスルー
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../../en/developer/13-CODE-WALKTHROUGHS/CONVERSATION-FLOW.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](CONVERSATION-FLOW.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](../../en/developer/13-CODE-WALKTHROUGHS/CONVERSATION-FLOW.md)
 
 ## 📋 概要
 

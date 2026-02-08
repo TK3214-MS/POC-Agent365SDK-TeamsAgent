@@ -1,6 +1,7 @@
 # Security Best Practices - Authentication, Authorization, and Data Protection
 
-> **Language**: [🇯🇵 日本語](../../developer/11-SECURITY-BEST-PRACTICES.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../developer/11-SECURITY-BEST-PRACTICES.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](11-SECURITY-BEST-PRACTICES.md)
 
 ## 📋 Security Checklist
 

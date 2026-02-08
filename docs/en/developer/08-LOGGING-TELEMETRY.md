@@ -1,6 +1,7 @@
 # Logging & Telemetry - Observability Implementation
 
-> **Language**: [🇯🇵 日本語](../../developer/08-LOGGING-TELEMETRY.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../developer/08-LOGGING-TELEMETRY.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](08-LOGGING-TELEMETRY.md)
 
 ## 📋 Key Topics
 

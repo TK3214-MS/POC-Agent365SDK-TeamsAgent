@@ -1,6 +1,7 @@
 # Migration Guides - Upgrade Paths and Breaking Changes
 
-> **Language**: [🇯🇵 日本語](../../developer/15-MIGRATION-GUIDES.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../developer/15-MIGRATION-GUIDES.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](15-MIGRATION-GUIDES.md)
 
 ## 📋 Migration Paths
 

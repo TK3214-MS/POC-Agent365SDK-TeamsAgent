@@ -1,6 +1,7 @@
 # Testing Strategies - テスト戦略とベストプラクティス
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/09-TESTING-STRATEGIES.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](09-TESTING-STRATEGIES.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](../en/developer/09-TESTING-STRATEGIES.md)
 
 ## 📋 テスト階層
 

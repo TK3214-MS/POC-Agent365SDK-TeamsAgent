@@ -1,6 +1,7 @@
 # Graph API Calls - Graph API呼び出しパターン詳細
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../../en/developer/13-CODE-WALKTHROUGHS/GRAPH-API-CALLS.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](GRAPH-API-CALLS.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](../../en/developer/13-CODE-WALKTHROUGHS/GRAPH-API-CALLS.md)
 
 ## 📋 パターン別呼び出し
 

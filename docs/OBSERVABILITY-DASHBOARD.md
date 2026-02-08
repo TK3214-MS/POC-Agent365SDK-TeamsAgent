@@ -1,6 +1,7 @@
 # Observability Dashboard ガイド
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/OBSERVABILITY-DASHBOARD.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../OBSERVABILITY-DASHBOARD.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](en/OBSERVABILITY-DASHBOARD.md)
 
 **リアルタイムでエージェント動作を可視化** - エージェントの内部動作、会話フロー、パフォーマンスをダッシュボードで監視
 

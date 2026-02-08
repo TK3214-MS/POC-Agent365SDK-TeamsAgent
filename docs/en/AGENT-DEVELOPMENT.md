@@ -1,6 +1,7 @@
 # Agent Development Guide
 
-> **Language**: [🇯🇵 日本語](../AGENT-DEVELOPMENT.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../AGENT-DEVELOPMENT.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](AGENT-DEVELOPMENT.md)
 
 **Customizing and Extending the Sales Support Agent** - Implementation patterns for MCP Tools, LLM Providers, and Adaptive Cards
 

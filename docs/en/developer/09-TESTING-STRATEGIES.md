@@ -1,6 +1,7 @@
 # Testing Strategies - Unit, Integration, and E2E Testing
 
-> **Language**: [🇯🇵 日本語](../../developer/09-TESTING-STRATEGIES.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../developer/09-TESTING-STRATEGIES.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](09-TESTING-STRATEGIES.md)
 
 ## 📋 Testing Pyramid
 

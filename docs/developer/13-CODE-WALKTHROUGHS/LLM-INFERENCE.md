@@ -1,6 +1,7 @@
 # LLM Inference - LLM推論プロセス詳細
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../../en/developer/13-CODE-WALKTHROUGHS/LLM-INFERENCE.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](LLM-INFERENCE.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](../../en/developer/13-CODE-WALKTHROUGHS/LLM-INFERENCE.md)
 
 ## 📋 推論フロー
 

@@ -1,6 +1,7 @@
 # Extensibility - 拡張性パターンとカスタマイズ
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/12-EXTENSIBILITY.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](12-EXTENSIBILITY.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](../en/developer/12-EXTENSIBILITY.md)
 
 ## 📋 新しいツール追加
 

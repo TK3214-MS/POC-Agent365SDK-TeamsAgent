@@ -1,6 +1,7 @@
 # Microsoft 365 認証設定ガイド
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/AUTHENTICATION.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../AUTHENTICATION.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](en/AUTHENTICATION.md)
 
 ## 📋 概要
 

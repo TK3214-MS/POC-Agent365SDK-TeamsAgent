@@ -1,6 +1,7 @@
 # Graph API Calls Walkthrough
 
-> **Language**: [🇯🇵 日本語](../../../developer/13-CODE-WALKTHROUGHS/GRAPH-API-CALLS.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../../developer/13-CODE-WALKTHROUGHS/GRAPH-API-CALLS.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](GRAPH-API-CALLS.md)
 
 ## 📋 Overview
 

@@ -1,6 +1,7 @@
 # Adaptive Cards 実装ガイド
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/ADAPTIVE-CARDS-GUIDE.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../ADAPTIVE-CARDS-GUIDE.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](en/ADAPTIVE-CARDS-GUIDE.md)
 
 ## 📋 概要
 

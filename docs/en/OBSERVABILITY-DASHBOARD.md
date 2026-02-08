@@ -1,6 +1,7 @@
 # Observability Dashboard Guide
 
-> **Language**: [🇯🇵 日本語](../OBSERVABILITY-DASHBOARD.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../OBSERVABILITY-DASHBOARD.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](OBSERVABILITY-DASHBOARD.md)
 
 **Visualize Agent Operations in Real-time** - Monitor agent internals, conversation flows, and performance with a dashboard
 

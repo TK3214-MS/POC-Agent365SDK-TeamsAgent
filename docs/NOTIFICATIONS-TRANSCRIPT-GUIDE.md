@@ -1,6 +1,7 @@
 # 🔔 Notifications & 💬 Transcript 機能ガイド
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/NOTIFICATIONS-TRANSCRIPT-GUIDE.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../NOTIFICATIONS-TRANSCRIPT-GUIDE.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](en/NOTIFICATIONS-TRANSCRIPT-GUIDE.md)
 
 ## 📋 概要
 

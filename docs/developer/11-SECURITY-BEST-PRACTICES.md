@@ -1,6 +1,7 @@
 # Security Best Practices - セキュリティベストプラクティス
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/11-SECURITY-BEST-PRACTICES.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](11-SECURITY-BEST-PRACTICES.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](../en/developer/11-SECURITY-BEST-PRACTICES.md)
 
 ## 📋 認証情報管理
 

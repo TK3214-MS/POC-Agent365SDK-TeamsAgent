@@ -1,6 +1,7 @@
 # Dev Tunnel Setup Guide
 
-> **Language**: [🇯🇵 日本語](../DEV-TUNNEL-SETUP.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../DEV-TUNNEL-SETUP.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](DEV-TUNNEL-SETUP.md)
 
 ## What is Dev Tunnel?
 

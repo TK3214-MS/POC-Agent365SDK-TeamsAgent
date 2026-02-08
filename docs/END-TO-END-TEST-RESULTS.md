@@ -1,6 +1,7 @@
 # 🧪 エンドツーエンド動作確認レポート
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/END-TO-END-TEST-RESULTS.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../END-TO-END-TEST-RESULTS.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](en/END-TO-END-TEST-RESULTS.md)
 
 **実施日時**: 2026年2月7日  
 **テスト対象**: Agent 365 SDK統合プラットフォーム（Observability + Notifications + Transcript & Storage）

@@ -1,6 +1,7 @@
 # Extensibility - Adding New Tools and Features
 
-> **Language**: [🇯🇵 日本語](../../developer/12-EXTENSIBILITY.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../developer/12-EXTENSIBILITY.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](12-EXTENSIBILITY.md)
 
 ## 📋 Extension Points
 

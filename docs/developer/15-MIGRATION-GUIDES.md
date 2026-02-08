@@ -1,6 +1,7 @@
 # Migration Guides - バージョンアップと移行ガイド
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/15-MIGRATION-GUIDES.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](15-MIGRATION-GUIDES.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](../en/developer/15-MIGRATION-GUIDES.md)
 
 ## 📋 .NET 8 → .NET 10 移行
 

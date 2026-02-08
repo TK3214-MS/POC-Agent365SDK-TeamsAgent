@@ -1,6 +1,7 @@
 # Localization Guide
 
-> **Language**: [🇯🇵 日本語](../LOCALIZATION.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../LOCALIZATION.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](LOCALIZATION.md)
 
 ## 📋 Overview
 

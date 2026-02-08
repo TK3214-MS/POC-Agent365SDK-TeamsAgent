@@ -1,6 +1,7 @@
 # API Reference - Core Interfaces and Classes
 
-> **Language**: [🇯🇵 日本語](../../developer/14-API-REFERENCE.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../developer/14-API-REFERENCE.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](14-API-REFERENCE.md)
 
 ## 📋 Core APIs
 

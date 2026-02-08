@@ -1,6 +1,7 @@
 # Troubleshooting Guide
 
-> **Language**: [🇯🇵 日本語](../TROUBLESHOOTING.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../TROUBLESHOOTING.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](TROUBLESHOOTING.md)
 
 ## 📋 Overview
 

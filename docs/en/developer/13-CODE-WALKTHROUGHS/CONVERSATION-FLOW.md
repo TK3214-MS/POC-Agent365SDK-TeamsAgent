@@ -1,6 +1,7 @@
 # Conversation Flow Walkthrough
 
-> **Language**: [🇯🇵 日本語](../../../developer/13-CODE-WALKTHROUGHS/CONVERSATION-FLOW.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../../developer/13-CODE-WALKTHROUGHS/CONVERSATION-FLOW.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](CONVERSATION-FLOW.md)
 
 ## 📋 Overview
 

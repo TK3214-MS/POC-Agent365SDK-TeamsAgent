@@ -1,6 +1,7 @@
 # Performance Optimization - パフォーマンス最適化ガイド
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/10-PERFORMANCE-OPTIMIZATION.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](10-PERFORMANCE-OPTIMIZATION.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](../en/developer/10-PERFORMANCE-OPTIMIZATION.md)
 
 ## 📋 最適化ポイント
 

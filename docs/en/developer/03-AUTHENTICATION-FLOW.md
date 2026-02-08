@@ -1,6 +1,7 @@
 # Authentication Flow - Application-only Authentication Deep Dive
 
-> **Language**: [🇯🇵 日本語](../../developer/03-AUTHENTICATION-FLOW.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../developer/03-AUTHENTICATION-FLOW.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](03-AUTHENTICATION-FLOW.md)
 
 ## 📋 Table of Contents
 

@@ -1,6 +1,7 @@
 # Getting Started - Sales Support Agent
 
-> **Language**: [🇯🇵 日本語](../GETTING-STARTED.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../GETTING-STARTED.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](GETTING-STARTED.md)
 
 ## 📋 Introduction
 

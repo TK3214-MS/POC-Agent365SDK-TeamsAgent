@@ -1,6 +1,7 @@
 # SDK Integration Patterns - Best Practices and Design Patterns
 
-> **Language**: [🇯🇵 日本語](../../developer/06-SDK-INTEGRATION-PATTERNS.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../developer/06-SDK-INTEGRATION-PATTERNS.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](06-SDK-INTEGRATION-PATTERNS.md)
 
 ## 📋 Table of Contents
 

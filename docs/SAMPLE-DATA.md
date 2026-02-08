@@ -1,5 +1,8 @@
 # サンプルデータ作成ガイド
 
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](SAMPLE-DATA.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](en/SAMPLE-DATA.md)
+
 ## 📋 概要
 
 営業支援エージェントのデモを効果的に実施するため、**このプロジェクトに実装されているAPIエンドポイント**を使用してMicrosoft 365テナントにテストデータを生成する手順を説明します。

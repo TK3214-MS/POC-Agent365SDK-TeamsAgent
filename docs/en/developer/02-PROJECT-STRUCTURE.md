@@ -1,6 +1,7 @@
 # Project Structure - Directory and File Organization
 
-> **Language**: [🇯🇵 日本語](../../developer/02-PROJECT-STRUCTURE.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../developer/02-PROJECT-STRUCTURE.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](02-PROJECT-STRUCTURE.md)
 
 ## 📋 Project Structure
 

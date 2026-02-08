@@ -1,6 +1,7 @@
 # Agent開発ガイド
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/AGENT-DEVELOPMENT.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../AGENT-DEVELOPMENT.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](en/AGENT-DEVELOPMENT.md)
 
 **営業支援エージェントのカスタマイズと拡張** - MCP Tools、LLMプロバイダー、Adaptive Cardsの実装パターン
 

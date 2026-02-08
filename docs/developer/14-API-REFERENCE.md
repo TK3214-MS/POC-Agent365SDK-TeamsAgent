@@ -1,6 +1,7 @@
 # API Reference - 主要クラスとインターフェース
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/14-API-REFERENCE.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](14-API-REFERENCE.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](../en/developer/14-API-REFERENCE.md)
 
 ## 📋 コア インターフェース
 

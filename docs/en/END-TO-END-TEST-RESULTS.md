@@ -1,6 +1,7 @@
 # 🧪 End-to-End Testing Report
 
-> **Language**: [🇯🇵 日本語](../END-TO-END-TEST-RESULTS.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../END-TO-END-TEST-RESULTS.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](END-TO-END-TEST-RESULTS.md)
 
 **Test Date**: February 7, 2026  
 **Test Target**: Agent 365 SDK Integrated Platform (Observability + Notifications + Transcript & Storage)

@@ -1,6 +1,7 @@
 # Architecture Documentation
 
-> **Language**: [🇯🇵 日本語](../ARCHITECTURE.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../ARCHITECTURE.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](ARCHITECTURE.md)
 
 ## 📋 Overview
 

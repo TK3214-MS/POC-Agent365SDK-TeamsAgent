@@ -1,6 +1,7 @@
 # Teams Bot Manifest Configuration Guide
 
-> **Language**: [🇯🇵 日本語](../TEAMS-MANIFEST.md) | 🇬🇧 English
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../TEAMS-MANIFEST.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](TEAMS-MANIFEST.md)
 
 ## 📋 Overview
 

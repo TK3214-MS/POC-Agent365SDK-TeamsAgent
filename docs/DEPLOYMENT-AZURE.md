@@ -1,6 +1,7 @@
 # Azure 本番環境デプロイガイド
 
-> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/DEPLOYMENT-AZURE.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../DEPLOYMENT-AZURE.md)
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](en/DEPLOYMENT-AZURE.md)
 
 ## 📋 概要
 
