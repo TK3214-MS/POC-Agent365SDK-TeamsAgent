@@ -19,12 +19,10 @@ graph TB
         A[Teams ユーザー]
         B[Observability Dashboard<br/>Web UI]
     end
-    
     subgraph "Bot Framework Layer"
         C[Bot Framework Adapter]
         D[Teams Activity Handler]
     end
-    
     subgraph "営業支援エージェント (.NET 10)"
         E[SalesAgent]
         F[IChatClient<br/>Middleware Chain]
@@ -32,13 +30,11 @@ graph TB
         H[ObservabilityService]
         I[SignalR Hub]
     end
-    
     subgraph "LLM Layer"
         J[Azure OpenAI]
         K[Ollama]
         L[その他 LLM]
     end
-    
     subgraph "Microsoft 365"
         M[Graph API]
         N[📧 Outlook]
@@ -46,7 +42,6 @@ graph TB
         P[📁 SharePoint]
         Q[💬 Teams]
     end
-    
     A -->|@メンション| C
     C --> D
     D --> E
