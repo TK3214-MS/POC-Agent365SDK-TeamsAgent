@@ -1,5 +1,7 @@
 # SDK Overview - Sales Support Agent開発者ガイド
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/01-SDK-OVERVIEW.md)
+
 ## 📋 目次
 
 - [概要](#概要)

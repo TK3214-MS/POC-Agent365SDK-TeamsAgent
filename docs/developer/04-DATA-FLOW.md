@@ -1,5 +1,7 @@
 # Data Flow - Graph API → LLM → Response 詳細解説
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/04-DATA-FLOW.md)
+
 ## 📋 目次
 
 - [概要](#概要)

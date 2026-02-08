@@ -1,5 +1,7 @@
 # Dependency Injection - DIコンテナの設計と使用
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/05-DEPENDENCY-INJECTION.md)
+
 ## 📋 目次
 
 - [DI基本パターン](#di基本パターン)

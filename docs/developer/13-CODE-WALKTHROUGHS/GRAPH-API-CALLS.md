@@ -1,5 +1,7 @@
 # Graph API Calls - Graph API呼び出しパターン詳細
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../../en/developer/13-CODE-WALKTHROUGHS/GRAPH-API-CALLS.md)
+
 ## 📋 パターン別呼び出し
 
 ### メール検索

@@ -1,5 +1,7 @@
 # Project Structure - ディレクトリとファイル構成
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/02-PROJECT-STRUCTURE.md)
+
 ## 📋 プロジェクト構造
 
 ```

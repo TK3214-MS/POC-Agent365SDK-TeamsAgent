@@ -1,5 +1,7 @@
 # Dev Tunnel セットアップガイド
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/DEV-TUNNEL-SETUP.md)
+
 ## Dev Tunnel とは？
 
 Microsoft が提供する開発用トンネルサービスで、ローカルアプリケーションを外部に公開できます。

@@ -1,5 +1,7 @@
 # Microsoft 365 認証設定ガイド
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/AUTHENTICATION.md)
+
 ## 📋 概要
 
 営業支援エージェントは**Application-only認証**（アプリケーション専用認証）を使用してMicrosoft 365データにアクセスします。

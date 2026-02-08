@@ -1,5 +1,7 @@
 # Testing Strategies - テスト戦略とベストプラクティス
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/09-TESTING-STRATEGIES.md)
+
 ## 📋 テスト階層
 
 ### テストピラミッド

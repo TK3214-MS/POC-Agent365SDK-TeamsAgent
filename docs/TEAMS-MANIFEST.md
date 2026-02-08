@@ -1,5 +1,7 @@
 # Teams Bot マニフェスト設定ガイド
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/TEAMS-MANIFEST.md)
+
 ## 📋 概要
 
 Microsoft Teams で Bot を動作させるには、**Teams アプリマニフェスト** が必要です。このガイドでは、営業支援エージェントを Teams に登録するための手順を解説します。

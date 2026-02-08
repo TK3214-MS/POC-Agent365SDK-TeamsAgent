@@ -1,5 +1,7 @@
 # 🧪 エンドツーエンド動作確認レポート
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/END-TO-END-TEST-RESULTS.md)
+
 **実施日時**: 2026年2月7日  
 **テスト対象**: Agent 365 SDK統合プラットフォーム（Observability + Notifications + Transcript & Storage）
 

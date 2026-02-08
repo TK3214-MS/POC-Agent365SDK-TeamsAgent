@@ -1,5 +1,7 @@
 # Performance Optimization - パフォーマンス最適化ガイド
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/10-PERFORMANCE-OPTIMIZATION.md)
+
 ## 📋 最適化ポイント
 
 ### 1. Graph API最適化

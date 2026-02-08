@@ -1,5 +1,7 @@
 # Authentication Flow - Application-only認証の詳細解説
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/03-AUTHENTICATION-FLOW.md)
+
 ## 📋 目次
 
 - [概要](#概要)

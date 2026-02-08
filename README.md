@@ -1,5 +1,7 @@
 # 営業支援エージェント (Sales Support Agent)
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](docs/en/README.md)
+
 **Microsoft Agent 365 SDK デモアプリケーション** - AIエージェントでMicrosoft 365データを活用
 
 [![.NET 10](https://img.shields.io/badge/.NET-10-purple)](https://dotnet.microsoft.com/)

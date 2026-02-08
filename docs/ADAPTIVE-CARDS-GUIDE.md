@@ -1,5 +1,7 @@
 # Adaptive Cards 実装ガイド
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/ADAPTIVE-CARDS-GUIDE.md)
+
 ## 📋 概要
 
 本プロジェクトでは、Teams Bot の応答に **Adaptive Cards** を使用しています。Adaptive Cards は、構造化された視覚的に魅力的なカードを作成するための JSON ベースの形式で、Microsoft Teams をはじめとする様々なプラットフォームで動作します。

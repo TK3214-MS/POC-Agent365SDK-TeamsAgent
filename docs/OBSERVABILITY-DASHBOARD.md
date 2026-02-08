@@ -1,5 +1,7 @@
 # Observability Dashboard ガイド
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/OBSERVABILITY-DASHBOARD.md)
+
 **リアルタイムでエージェント動作を可視化** - エージェントの内部動作、会話フロー、パフォーマンスをダッシュボードで監視
 
 ---

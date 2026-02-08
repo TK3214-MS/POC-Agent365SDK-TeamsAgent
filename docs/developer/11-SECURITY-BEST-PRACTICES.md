@@ -1,5 +1,7 @@
 # Security Best Practices - セキュリティベストプラクティス
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/11-SECURITY-BEST-PRACTICES.md)
+
 ## 📋 認証情報管理
 
 ### ❌ DON'T: ハードコーディング

@@ -1,5 +1,7 @@
 # Logging & Telemetry - ロギングとテレメトリの実装
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/08-LOGGING-TELEMETRY.md)
+
 ## 📋 ロギング構成
 
 ### Program.cs での設定

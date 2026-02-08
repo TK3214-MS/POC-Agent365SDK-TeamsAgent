@@ -1,5 +1,7 @@
 # 🔔 Notifications & 💬 Transcript 機能ガイド
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/NOTIFICATIONS-TRANSCRIPT-GUIDE.md)
+
 ## 📋 概要
 
 Agent 365 SDK の**Notifications**と**Transcript & Storage**機能を統合した拡張デモです。

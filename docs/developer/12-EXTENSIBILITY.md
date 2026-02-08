@@ -1,5 +1,7 @@
 # Extensibility - 拡張性パターンとカスタマイズ
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/12-EXTENSIBILITY.md)
+
 ## 📋 新しいツール追加
 
 ### ステップ1: ツールクラス作成

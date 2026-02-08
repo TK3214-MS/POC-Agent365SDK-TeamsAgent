@@ -1,5 +1,7 @@
 # Migration Guides - バージョンアップと移行ガイド
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/15-MIGRATION-GUIDES.md)
+
 ## 📋 .NET 8 → .NET 10 移行
 
 ### 主な変更点

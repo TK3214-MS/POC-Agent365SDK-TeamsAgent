@@ -1,5 +1,7 @@
 # LLM Inference - LLM推論プロセス詳細
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../../en/developer/13-CODE-WALKTHROUGHS/LLM-INFERENCE.md)
+
 ## 📋 推論フロー
 
 ### 1. IChatClient による推論

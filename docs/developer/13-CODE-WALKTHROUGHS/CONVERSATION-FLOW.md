@@ -1,5 +1,7 @@
 # Conversation Flow - 会話フロー詳細ウォークスルー
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../../en/developer/13-CODE-WALKTHROUGHS/CONVERSATION-FLOW.md)
+
 ## 📋 概要
 
 このドキュメントでは、ユーザーがTeams経由で "今週の商談サマリを教えてください" と送信した際の完全な実行フローをコードレベルで解説します。

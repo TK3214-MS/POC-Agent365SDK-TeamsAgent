@@ -1,5 +1,7 @@
 # API Reference - 主要クラスとインターフェース
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/14-API-REFERENCE.md)
+
 ## 📋 コア インターフェース
 
 ### ILLMProvider

@@ -1,5 +1,7 @@
 # Azure 本番環境デプロイガイド
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/DEPLOYMENT-AZURE.md)
+
 ## 📋 概要
 
 営業支援エージェントをAzure本番環境にデプロイする手順を説明します。

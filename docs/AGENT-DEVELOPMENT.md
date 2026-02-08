@@ -1,5 +1,7 @@
 # Agent開発ガイド
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/AGENT-DEVELOPMENT.md)
+
 **営業支援エージェントのカスタマイズと拡張** - MCP Tools、LLMプロバイダー、Adaptive Cardsの実装パターン
 
 ---

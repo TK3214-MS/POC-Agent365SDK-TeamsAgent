@@ -1,5 +1,7 @@
 # SharePoint Search API 実装ガイド
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/SHAREPOINT-SEARCH-API.md)
+
 ## 📋 概要
 
 本プロジェクトでは、**Microsoft Search API** を使用して SharePoint ドキュメントを検索しています。従来の Graph API の `/sites/{site-id}/drive/items` ではなく、`/search/query` エンドポイントを使用することで、より高度な検索機能を実現しています。

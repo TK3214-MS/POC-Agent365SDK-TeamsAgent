@@ -1,5 +1,7 @@
 # アーキテクチャドキュメント
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](en/ARCHITECTURE.md)
+
 ## 📋 概要
 
 営業支援エージェントは、**Microsoft Agent 365 SDK**をベースに、Microsoft 365データを活用した AIエージェントを実現する.NET 10アプリケーションです。

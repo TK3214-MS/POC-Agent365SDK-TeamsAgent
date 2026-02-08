@@ -1,5 +1,7 @@
 # SDK Integration Patterns - ベストプラクティスとデザインパターン
 
+> **Language**: 🇯🇵 日本語 | [🇬🇧 English](../en/developer/06-SDK-INTEGRATION-PATTERNS.md)
+
 ## 📋 目次
 
 - [概要](#概要)
