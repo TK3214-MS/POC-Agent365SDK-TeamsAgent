@@ -423,7 +423,7 @@ POST /api/sales-summary
 
 ## 📚 関連ドキュメント
 
-- **[Observability Demo Guide](./OBSERVABILITY-DEMO-GUIDE.md)** - Observability機能の詳細
+- **[Observability Dashboard](./OBSERVABILITY-DASHBOARD.md)** - Observability機能の詳細
 - **[Notifications & Transcript Guide](./NOTIFICATIONS-TRANSCRIPT-GUIDE.md)** - 通知・会話履歴機能の詳細
 
 ---

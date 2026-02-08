@@ -447,4 +447,4 @@ convert outline.png -resize 32x32 outline.png
 - [ ] マニフェスト検証ツールで確認
 - [ ] Teams にアップロードして動作確認
 
-すべて完了したら、[Agent Identity 設定](AGENT-IDENTITY-SETUP.md) と組み合わせて本格的な運用が可能になります！
+すべて完了したら、[認証設定](AUTHENTICATION.md) と組み合わせて本格的な運用が可能になります！
