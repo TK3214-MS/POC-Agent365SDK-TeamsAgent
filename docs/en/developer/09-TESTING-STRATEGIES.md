@@ -1,115 +1,282 @@
-# Testing Strategies - Unit, Integration, and E2E Testing
+# Testing Strategies - Testing Strategies and Best Practices
 
 [![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../developer/09-TESTING-STRATEGIES.md)
 [![English](https://img.shields.io/badge/lang-English-blue.svg)](09-TESTING-STRATEGIES.md)
 
-## 📋 Testing Pyramid
+## 📋 Testing Hierarchy
+
+### Testing Pyramid
 
 ```
-       /\
-      /E2E\        <- Few, Slow, Real environments
-     /------\
-    /  INT   \     <- Medium, Graph API mocks
-   /----------\
-  /   UNIT     \   <- Many, Fast, Isolated
- /--------------\
+        ┌────────────┐
+        │  E2E Tests │  Few (Slow, Fragile, High Cost)
+        └────────────┘
+      ┌────────────────┐
+      │Integration Tests│ Moderate (Medium Speed, Medium Cost)
+      └────────────────┘
+    ┌────────────────────┐
+    │    Unit Tests       │ Many (Fast, Stable, Low Cost)
+    └────────────────────┘
 ```
-
----
 
 ## Unit Testing
 
-### Mock Pattern with Moq
+### xUnit + Moq Pattern
 
 ```csharp
-[Fact]
-public async Task SearchSalesEmails_ShouldReturnFormattedResults()
+public class OutlookEmailToolTests
 {
-    // Arrange
-    var mockGraphClient = new Mock<GraphServiceClient>();
-    var mockLogger = new Mock<ILogger<OutlookEmailTool>>();
-    
-    var messages = new MessageCollectionResponse
+    [Fact]
+    public async Task SearchSalesEmails_Success_ReturnsFormattedSummary()
     {
-        Value = new List<Message>
+        // Arrange
+        var mockGraphClient = new Mock<GraphServiceClient>();
+        var mockSettings = new M365Settings
         {
-            new Message { Subject = "Test Email", From = new Recipient { EmailAddress = new EmailAddress { Address = "test@example.com" } } }
-        }
-    };
-    
-    mockGraphClient.Setup(x => x.Users[It.IsAny<string>()].Messages.GetAsync(It.IsAny<Action<RequestConfiguration>>(), default))
-        .ReturnsAsync(messages);
-    
-    var tool = new OutlookEmailTool(mockGraphClient.Object, mockSettings, mockLogger.Object);
-    
-    // Act
-    var result = await tool.SearchSalesEmails("2026-02-01", "2026-02-07", "proposal");
-    
-    // Assert
-    Assert.Contains("Test Email", result);
+            UserId = "testuser@company.com"
+        };
+        
+        var mockMessages = new MessageCollectionResponse
+        {
+            Value = new List<Message>
+            {
+                new Message
+                {
+                    Subject = "Regarding the Deal",
+                    From = new Recipient { EmailAddress = new EmailAddress { Name = "Taro Tanaka" } },
+                    ReceivedDateTime = DateTimeOffset.UtcNow
+                }
+            }
+        };
+        
+        mockGraphClient
+            .Setup(x => x.Users[It.IsAny<string>()].Messages.GetAsync(It.IsAny<Action<RequestConfiguration>>(), default))
+            .ReturnsAsync(mockMessages);
+        
+        var tool = new OutlookEmailTool(mockGraphClient.Object, mockSettings);
+        
+        // Act
+        var result = await tool.SearchSalesEmails("2026-02-01", "2026-02-07", "deal");
+        
+        // Assert
+        Assert.Contains("Regarding the Deal", result);
+        Assert.Contains("Taro Tanaka", result);
+    }
 }
 ```
 
----
+### Test Fixtures
+
+```csharp
+public class GraphClientFixture : IDisposable
+{
+    public Mock<GraphServiceClient> MockGraphClient { get; }
+    public M365Settings TestSettings { get; }
+    
+    public GraphClientFixture()
+    {
+        MockGraphClient = new Mock<GraphServiceClient>();
+        TestSettings = new M365Settings
+        {
+            UserId = "testuser@example.com",
+            TenantId = "test-tenant",
+            ClientId = "test-client"
+        };
+    }
+    
+    public void Dispose() { }
+}
+
+public class EmailToolTests : IClassFixture<GraphClientFixture>
+{
+    private readonly GraphClientFixture _fixture;
+    
+    public EmailToolTests(GraphClientFixture fixture)
+    {
+        _fixture = fixture;
+    }
+    
+    [Fact]
+    public async Task TestCase1() { /* ... */ }
+}
+```
 
 ## Integration Testing
 
-### Graph API Integration Test
+### WebApplicationFactory Pattern
 
 ```csharp
-[Fact]
-public async Task SearchSalesEmails_WithRealGraphAPI_ShouldReturnResults()
+public class SalesAgentIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
 {
-    // Arrange - Use real GraphServiceClient with test credentials
-    var credential = new ClientSecretCredential(
-        TestConfiguration.TenantId,
-        TestConfiguration.ClientId,
-        TestConfiguration.ClientSecret);
+    private readonly WebApplicationFactory<Program> _factory;
+    private readonly HttpClient _client;
     
-    var graphClient = new GraphServiceClient(credential);
-    var tool = new OutlookEmailTool(graphClient, settings, logger);
-    
-    // Act
-    var result = await tool.SearchSalesEmails(
-        startDate: DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd"),
-        endDate: DateTime.Now.ToString("yyyy-MM-dd"),
-        keywords: "test");
-    
-    // Assert
-    Assert.NotNull(result);
-    Assert.Contains("メール", result); // Japanese response format
-}
-```
-
----
-
-## End-to-End Testing
-
-### Full Agent Workflow Test
-
-```csharp
-[Fact]
-public async Task GenerateSalesSummary_EndToEnd_ShouldReturnCompleteResponse()
-{
-    // Arrange - Real services
-    var salesAgent = CreateRealSalesAgent();
-    var request = new SalesSummaryRequest
+    public SalesAgentIntegrationTests(WebApplicationFactory<Program> factory)
     {
-        Query = "今週の商談サマリを教えてください",
-        StartDate = DateTime.Now.AddDays(-7),
-        EndDate = DateTime.Now
-    };
+        _factory = factory;
+        _client = _factory.CreateClient();
+    }
     
-    // Act
-    var response = await salesAgent.GenerateSalesSummaryAsync(request);
-    
-    // Assert
-    Assert.NotNull(response.Response);
-    Assert.True(response.ProcessingTimeMs > 0);
-    Assert.Contains("サマリ", response.Response);
+    [Fact]
+    public async Task PostSalesSummary_ValidRequest_ReturnsSuccess()
+    {
+        // Arrange
+        var request = new SalesSummaryRequest
+        {
+            Query = "This week's deal summary",
+            StartDate = DateTime.Now.AddDays(-7),
+            EndDate = DateTime.Now
+        };
+        
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/sales-summary", request);
+        
+        // Assert
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<SalesSummaryResponse>();
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Response);
+    }
 }
 ```
 
----
+## E2E Testing
 
-For complete test examples, mocking strategies, CI/CD integration, and coverage reports, please refer to the Japanese version at [../developer/09-TESTING-STRATEGIES.md](../../developer/09-TESTING-STRATEGIES.md).
+### Playwright Tests
+
+```csharp
+[Test]
+public async Task Dashboard_RealTimeUpdates_DisplayCorrectly()
+{
+    await using var playwright = await Playwright.CreateAsync();
+    await using var browser = await playwright.Chromium.LaunchAsync();
+    var page = await browser.NewPageAsync();
+    
+    // Open the dashboard
+    await page.GotoAsync("http://localhost:5000");
+    
+    // Verify SignalR connection
+    await page.WaitForSelectorAsync("#connection-status.connected");
+    
+    // Make API call
+    await page.ClickAsync("#test-sales-summary-btn");
+    
+    // Wait for real-time update
+    await page.WaitForSelectorAsync(".notification:has-text('Deal summary generation complete')");
+    
+    // Verify metrics update
+    var requestCount = await page.TextContentAsync("#total-requests");
+    Assert.That(requestCount, Is.Not.EqualTo("0"));
+}
+```
+
+## Mock Patterns
+
+### ILLMProvider Mock
+
+```csharp
+public class MockLLMProvider : ILLMProvider
+{
+    public string ProviderName => "Mock";
+    
+    public IChatClient GetChatClient()
+    {
+        var mockClient = new Mock<IChatClient>();
+        mockClient
+            .Setup(x => x.CompleteAsync(It.IsAny<IList<ChatMessage>>(), null, default))
+            .ReturnsAsync(new ChatCompletion
+            {
+                Message = new ChatMessage
+                {
+                    Role = ChatRole.Assistant,
+                    Content = "Test response"
+                }
+            });
+        
+        return mockClient.Object;
+    }
+}
+```
+
+### GraphServiceClient Mock
+
+```csharp
+var mockGraphClient = new Mock<GraphServiceClient>();
+
+// Mock for email search
+mockGraphClient
+    .Setup(x => x.Users[It.IsAny<string>()].Messages.GetAsync(It.IsAny<Action<RequestConfiguration>>(), default))
+    .ReturnsAsync(new MessageCollectionResponse
+    {
+        Value = CreateMockMessages()
+    });
+
+// Mock for calendar search
+mockGraphClient
+    .Setup(x => x.Users[It.IsAny<string>()].Calendar.Events.GetAsync(It.IsAny<Action<RequestConfiguration>>(), default))
+    .ReturnsAsync(new EventCollectionResponse
+    {
+        Value = CreateMockEvents()
+    });
+```
+
+## Test Coverage
+
+### Collecting Coverage
+
+```bash
+# Run tests + collect coverage
+dotnet test --collect:"XPlat Code Coverage"
+
+# Generate report
+dotnet tool install -g dotnet-reportgenerator-globaltool
+reportgenerator -reports:"**/coverage.cobertura.xml" -targetdir:"coverage-report" -reporttypes:Html
+```
+
+### Coverage Targets
+
+| Layer | Target Coverage |
+|---------|--------------|
+| **Services/** | 80% or higher |
+| **Bot/** | 70% or higher |
+| **Program.cs** | Excluded (covered by integration tests) |
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '10.0.x'
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Build
+        run: dotnet build --no-restore
+      
+      - name: Test
+        run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage"
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: '**/coverage.cobertura.xml'
+```
+
+## Next Steps
+
+- **[TESTING.md](../TESTING.md)**: Detailed Testing Guide
+- **[13-CODE-WALKTHROUGHS/](13-CODE-WALKTHROUGHS/)**: Code Walkthroughs

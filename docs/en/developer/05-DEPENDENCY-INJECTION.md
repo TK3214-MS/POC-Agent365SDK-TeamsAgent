@@ -17,7 +17,7 @@
 ### Service Registration in Program.cs
 
 ```csharp
-// Singleton - Single instance across application
+// Singleton - Single instance across the entire application
 builder.Services.AddSingleton<TokenCredential>(sp =>
 {
     var settings = sp.GetRequiredService<M365Settings>();
@@ -81,8 +81,8 @@ builder.Services.AddSingleton<GraphServiceClient>(/* implementation */);
 ### Scoped
 
 **Characteristics**:
-- One instance per HTTP request
-- Shared within request
+- One instance created per HTTP request
+- Shared within a request
 - Disposed when request ends
 
 **Usage Example**:
@@ -188,38 +188,46 @@ public class OutlookEmailTool
     public OutlookEmailTool(
         GraphServiceClient graphClient,
         M365Settings settings,
-        I Logger<OutlookEmailTool> logger)
+        ILogger<OutlookEmailTool> logger)
     {
-        // All dependencies explicit in constructor
+        // All dependencies are explicit in the constructor
     }
+}
+
+// 3. Avoid Service Locator pattern
+public class SalesAgent
+{
+    // ❌ Service Locator (anti-pattern)
+    // private readonly IServiceProvider _serviceProvider;
+    
+    // ✅ Explicit DI
+    private readonly ILLMProvider _llmProvider;
 }
 ```
 
 ### ❌ DON'T
 
 ```csharp
-// 1. Depend on concrete classes
+// 1. Depend directly on concrete classes
 public class SalesAgent
 {
     private readonly AzureOpenAIProvider _provider;  // BAD
 }
 
-// 2. Service locator pattern
+// 2. Create instances with new inside services
 public class SalesAgent
 {
-    public SalesAgent(IServiceProvider serviceProvider)
+    public void Process()
     {
-        _provider = serviceProvider.GetService<ILLMProvider>();  // BAD
+        var provider = new AzureOpenAIProvider();  // BAD
     }
 }
 
-// 3. Use 'new' keyword
-public class SalesAgent
-{
-    private readonly ILLMProvider _provider = new AzureOpenAIProvider();  // BAD
-}
+// 3. Register Singleton services that depend on Scoped services
+// This causes a "Captive Dependency" problem
+builder.Services.AddSingleton<MyService>();  // BAD if MyService depends on Scoped services
 ```
 
 ---
 
-For complete DI validation strategies, service resolution testing, and advanced dependency patterns, please refer to the Japanese version at [../developer/05-DEPENDENCY-INJECTION.md](../../developer/05-DEPENDENCY-INJECTION.md).
+> **Next**: [06-SDK-INTEGRATION-PATTERNS.md](06-SDK-INTEGRATION-PATTERNS.md) - SDK Integration Patterns

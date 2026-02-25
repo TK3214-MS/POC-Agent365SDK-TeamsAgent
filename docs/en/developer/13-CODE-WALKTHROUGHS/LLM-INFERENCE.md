@@ -1,204 +1,205 @@
-# LLM Inference Walkthrough
+# LLM Inference - Detailed LLM Inference Process
 
 [![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../../developer/13-CODE-WALKTHROUGHS/LLM-INFERENCE.md)
 [![English](https://img.shields.io/badge/lang-English-blue.svg)](LLM-INFERENCE.md)
 
-## 📋 Overview
+## 📋 Inference Flow
 
-Detailed walkthrough of LLM inference flow using Microsoft.Extensions.AI and Agent 365 SDK.
-
----
-
-## Flow Diagram
-
-```mermaid
-sequenceDiagram
-    participant Agent as SalesAgent
-    participant AI as AIAgent
-    participant Chat as IChatClient
-    participant LLM as LLM Provider
-    participant Tools as MCP Tools
-    
-    Agent->>AI: RunAsync("Show sales status")
-    AI->>Chat: CompleteAsync(messages)
-    Chat->>LLM: HTTP POST /chat/completions
-    
-    Note over LLM: Analyzes query<br/>Decides to use tools
-    
-    LLM->>Chat: ToolCall: SearchSalesEmails
-    Chat->>Tools: SearchSalesEmails(args)
-    Tools->>Tools: Execute Graph API
-    Tools->>Chat: Formatted results
-    
-    Chat->>LLM: HTTP POST /chat/completions<br/>(with tool results)
-    
-    Note over LLM: Generates final<br/>response
-    
-    LLM->>Chat: Final response text
-    Chat->>AI: ChatCompletion
-    AI->>Agent: AgentResponse
-```
-
----
-
-## IChatClient Builder Pattern
-
-### Creating Chat Client with Middleware
-
-**Services/LLM/GitHubModelsProvider.cs**:
+### 1. Inference with IChatClient
 
 ```csharp
-public class GitHubModelsProvider : ILLMProvider
+var chatClient = _llmProvider.GetChatClient();
+
+var messages = new List<ChatMessage>
 {
-    private readonly IChatClient _chatClient;
+    new ChatMessage(ChatRole.System, SystemPrompt),
+    new ChatMessage(ChatRole.User, "今週の商談サマリを教えてください")
+};
 
-    public GitHubModelsProvider(GitHubModelsSettings settings)
-    {
-        _chatClient = new ChatClientBuilder()
-            // 1. Base client
-            .Use(new OpenAIChatClient(
-                new ApiKeyCredential(settings.ApiKey),
-                settings.ModelId,
-                new OpenAIClientOptions
-                {
-                    Endpoint = new Uri(settings.Endpoint)
-                }))
-            
-            // 2. OpenTelemetry middleware
-            .UseOpenTelemetry(
-                sourceName: "SalesSupportAgent",
-                configure: options =>
-                {
-                    options.EnableSensitiveData = false;
-                    options.JsonSerializerOptions = new JsonSerializerOptions
-                    {
-                        WriteIndented = false
-                    };
-                })
-            
-            // 3. Logging middleware
-            .UseLogging(
-                loggerFactory: LoggerFactory.Create(builder =>
-                {
-                    builder.AddConsole();
-                    builder.SetMinimumLevel(LogLevel.Information);
-                }))
-            
-            // 4. Function invocation middleware
-            .UseFunctionInvocation()
-            
-            // 5. Build final client
-            .Build();
-    }
-
-    public IChatClient GetChatClient() => _chatClient;
-}
-```
-
-### Middleware Execution Order
-
-```
-User Request
-    ↓
-[Logging Middleware] - Logs request
-    ↓
-[OpenTelemetry Middleware] - Starts span
-    ↓
-[Function Invocation Middleware] - Handles tool calls
-    ↓
-[Base Client] - Sends to LLM
-    ↓
-LLM Provider (Azure OpenAI / Ollama)
-    ↓
-[Base Client] - Receives response
-    ↓
-[Function Invocation Middleware] - Executes tools if needed
-    ↓
-[OpenTelemetry Middleware] - Ends span
-    ↓
-[Logging Middleware] - Logs response
-    ↓
-Final Response
-```
-
----
-
-## AIAgent with Tools
-
-### Agent Creation
-
-**Services/Agent/SalesAgent.cs**:
-
-```csharp
-private AIAgent CreateAgent()
+var options = new ChatOptions
 {
-    var chatClient = _llmProvider.GetChatClient();
-
-    // Define tools
-    var tools = new List<AITool>
+    Temperature = 0.7f,
+    MaxTokens = 2000,
+    Tools = new List<AITool>
     {
         AIFunctionFactory.Create(_emailTool.SearchSalesEmails),
-        AIFunctionFactory.Create(_calendarTool.SearchSalesMeetings),
-        AIFunctionFactory.Create(_sharePointTool.SearchSalesDocuments),
-        AIFunctionFactory.Create(_teamsTool.SearchSalesMessages)
-    };
+        AIFunctionFactory.Create(_calendarTool.SearchSalesMeetings)
+    }
+};
 
-    // Create agent with system prompt and tools
-    return chatClient.AsAIAgent(
-        systemPrompt: SystemPrompt,
-        name: "Sales Support Agent",
-        tools: tools
-    );
-}
-
-private const string SystemPrompt = @"
-You are a sales support agent with access to Microsoft 365 data.
-
-Available tools:
-1. SearchSalesEmails - Search Outlook emails
-2. SearchSalesMeetings - Search calendar events
-3. SearchSalesDocuments - Search SharePoint documents
-4. SearchSalesMessages - Search Teams messages
-
-Use these tools to gather comprehensive sales information and provide detailed summaries.
-Always respond in Japanese with a professional tone.
-";
+var response = await chatClient.CompleteAsync(messages, options);
 ```
 
 ---
 
-## ChatCompletion Flow
+## Azure OpenAI Inference Details
 
-### Single Turn (No Tools)
+### Request Construction
 
-```csharp
-public async Task<ChatCompletion> SimpleQuery()
+**Internally generated HTTP request**:
+
+```http
+POST https://<resource-name>.openai.azure.com/openai/deployments/gpt-4/chat/completions?api-version=2024-02-01
+Content-Type: application/json
+api-key: <api-key>
+
 {
-    var chatClient = _llmProvider.GetChatClient();
-
-    var messages = new List<ChatMessage>
-    {
-        new ChatMessage(ChatRole.System, "You are a helpful assistant"),
-        new ChatMessage(ChatRole.User, "Hello")
-    };
-
-    var response = await chatClient.CompleteAsync(messages);
-    
-    return response;
-}
-```
-
-**LLM Request**:
-
-```json
-{
-  "model": "gpt-4",
   "messages": [
-    {"role": "system", "content": "You are a helpful assistant"},
-    {"role": "user", "content": "Hello"}
+    {
+      "role": "system",
+      "content": "あなたは営業支援エージェントです。以下のツールを使用して..."
+    },
+    {
+      "role": "user",
+      "content": "今週の商談サマリを教えてください"
+    }
+  ],
+  "temperature": 0.7,
+  "max_tokens": 2000,
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "SearchSalesEmails",
+        "description": "商談関連のメールを検索して取得します",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "startDate": {
+              "type": "string",
+              "description": "検索開始日 (yyyy-MM-dd)"
+            },
+            "endDate": {
+              "type": "string",
+              "description": "検索終了日 (yyyy-MM-dd)"
+            },
+            "keywords": {
+              "type": "string",
+              "description": "検索キーワード",
+              "default": "商談,提案,見積,契約"
+            }
+          },
+          "required": ["startDate", "endDate"]
+        }
+      }
+    }
   ]
 }
 ```
+
+---
+
+## Tool Calling Flow
+
+### Step 1: Initial LLM Call
+
+**LLM Response** (tool call):
+
+```json
+{
+  "id": "chatcmpl-abc123",
+  "object": "chat.completion",
+  "created": 1707123456,
+  "model": "gpt-4",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_email_search_1",
+            "type": "function",
+            "function": {
+              "name": "SearchSalesEmails",
+              "arguments": "{\"startDate\":\"2026-02-03\",\"endDate\":\"2026-02-09\",\"keywords\":\"商談,提案\"}"
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_calls"
+    }
+  ]
+}
+```
+
+### Step 2: Tool Execution
+
+**C# Code**:
+
+```csharp
+// Automatically handled by FunctionInvocation Middleware
+var toolCall = response.Message.ToolCalls[0];
+var functionName = toolCall.Function.Name;        // "SearchSalesEmails"
+var arguments = toolCall.Function.Arguments;      // {"startDate":"2026-02-03",...}
+
+// JSON deserialization
+var args = JsonSerializer.Deserialize<SearchSalesEmailsArgs>(arguments);
+
+// Tool execution
+var result = await _emailTool.SearchSalesEmails(
+    args.StartDate,
+    args.EndDate,
+    args.Keywords
+);
+
+// Result: "📧 商談関連メール (5件)..."
+```
+
+### Step 3: Return Tool Results to LLM
+
+**Extended message list**:
+
+```csharp
+messages.Add(new ChatMessage(ChatRole.Assistant)
+{
+    ToolCalls = new[] { toolCall }
+});
+
+messages.Add(new ChatMessage(ChatRole.Tool)
+{
+    ToolCallId = "call_email_search_1",
+    Content = result  // "📧 商談関連メール (5件)..."
+});
+```
+
+**Second LLM request**:
+
+```json
+{
+  "messages": [
+    {
+      "role": "system",
+      "content": "あなたは営業支援エージェントです..."
+    },
+    {
+      "role": "user",
+      "content": "今週の商談サマリを教えてください"
+    },
+    {
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "id": "call_email_search_1",
+          "type": "function",
+          "function": {
+            "name": "SearchSalesEmails",
+            "arguments": "{\"startDate\":\"2026-02-03\",...}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "call_email_search_1",
+      "content": "📧 商談関連メール (5件)..."
+    }
+  ]
+}
+```
+
+### Step 4: Additional Tool Call (Calendar)
 
 **LLM Response**:
 
@@ -208,130 +209,151 @@ public async Task<ChatCompletion> SimpleQuery()
     {
       "message": {
         "role": "assistant",
-        "content": "Hello! How can I help you today?"
-      }
+        "tool_calls": [
+          {
+            "id": "call_calendar_search_1",
+            "function": {
+              "name": "SearchSalesMeetings",
+              "arguments": "{\"startDate\":\"2026-02-03\",\"endDate\":\"2026-02-09\"}"
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_calls"
+    }
+  ]
+}
+```
+
+**Tool execution**:
+
+```csharp
+var result = await _calendarTool.SearchSalesMeetings(
+    "2026-02-03",
+    "2026-02-09",
+    "商談,提案"
+);
+// Result: "📅 商談予定 (3件)..."
+```
+
+### Step 5: Final Summary Generation
+
+**Third LLM request** (including 2 tool results):
+
+```json
+{
+  "messages": [
+    /* System prompt */,
+    /* User query */,
+    /* Email search tool call */,
+    /* Email search result */,
+    /* Calendar search tool call */,
+    /* Calendar search result */
+  ]
+}
+```
+
+**Final LLM response**:
+
+```json
+{
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "content": "## 📊 サマリー\n今週は5件の商談メールと3件の予定があります。\n\n## 📧 商談メール\n- 株式会社A社からの提案依頼（2/5受信）\n- B社見積もり送付完了（2/6送信）\n\n## 📅 商談予定\n- 2/5 14:00 株式会社A社 商談\n- 2/7 10:00 B社 見積説明\n\n## 💡 推奨アクション\n1. A社提案書を2/4までに準備\n2. B社見積フォローアップ"
+      },
+      "finish_reason": "stop"
     }
   ],
   "usage": {
-    "prompt_tokens": 20,
-    "completion_tokens": 10,
-    "total_tokens": 30
+    "prompt_tokens": 1250,
+    "completion_tokens": 350,
+    "total_tokens": 1600
   }
 }
 ```
 
 ---
 
-### Multi-Turn with Tool Calling
+## Parameter Tuning
 
-**Turn 1: User Query**
-
-```csharp
-var messages = new List<ChatMessage>
-{
-    new ChatMessage(ChatRole.User, "Show this week's sales emails")
-};
-
-var response = await chatClient.CompleteAsync(messages, new ChatOptions
-{
-    Tools = tools  // Provide available tools
-});
-```
-
-**LLM Response (Tool Call)**:
-
-```json
-{
-  "choices": [
-    {
-      "message": {
-        "role": "assistant",
-        "tool_calls": [
-          {
-            "id": "call_abc123",
-            "function": {
-              "name": "SearchSalesEmails",
-              "arguments": "{\"startDate\":\"2026-02-03\",\"endDate\":\"2026-02-10\",\"keywords\":\"sales,deal\"}"
-            }
-          }
-        ]
-      }
-    }
-  ]
-}
-```
-
-**Turn 2: Execute Tool**
+### Temperature
 
 ```csharp
-// Function Invocation Middleware automatically executes tool
-var toolResult = await _emailTool.SearchSalesEmails("2026-02-03", "2026-02-10", "sales,deal");
+// Low temperature (0.0-0.3): Deterministic, consistency-focused
+Temperature = 0.2f  // Business reports, summaries
 
-// Add tool result to messages
-messages.Add(new ChatMessage(ChatRole.Tool, toolResult)
-{
-    ToolCallId = "call_abc123"
-});
+// Medium temperature (0.4-0.7): Balanced
+Temperature = 0.7f  // Conversations, summary generation
 
-// Send back to LLM
-var finalResponse = await chatClient.CompleteAsync(messages);
+// High temperature (0.8-1.0): Creative, diverse
+Temperature = 0.9f  // Brainstorming, idea generation
 ```
 
-**Final LLM Response**:
+### MaxTokens
 
-```json
-{
-  "choices": [
-    {
-      "message": {
-        "role": "assistant",
-        "content": "## 📧 Sales Emails Summary\n\nFound 5 sales-related emails this week:\n- Sales proposal for ABC Corp (Feb 5)\n- Q1 targets discussion (Feb 4)\n..."
-      }
-    }
-  ]
-}
+```csharp
+// Concise response
+MaxTokens = 500  // Approximately 200-300 characters
+
+// Standard summary
+MaxTokens = 1500  // 500-700 characters
+
+// Detailed report
+MaxTokens = 4000  // 2000+ characters
+```
+
+### TopP (Nucleus Sampling)
+
+```csharp
+// Alternative to Temperature
+TopP = 0.95f  // Select from words in the top 95% probability
 ```
 
 ---
 
-## Streaming Responses
+## Streaming Response
 
-### Streaming Pattern
+### CompleteStreamingAsync
 
 ```csharp
-public async Task StreamResponse(string query)
+await foreach (var update in chatClient.CompleteStreamingAsync(messages, options))
 {
-    var messages = new List<ChatMessage>
+    if (update.Text != null)
     {
-        new ChatMessage(ChatRole.User, query)
-    };
-
-    await foreach (var update in _chatClient.CompleteStreamingAsync(messages))
+        // Display to user immediately
+        await turnContext.SendActivityAsync(update.Text);
+    }
+    
+    if (update.FinishReason == ChatFinishReason.ToolCalls)
     {
-        if (update.Text != null)
+        // Tool call detected
+        foreach (var toolCall in update.ToolCalls)
         {
-            Console.Write(update.Text);  // Print token by token
-            await Task.Delay(10);  // Simulate typing
+            var result = await ExecuteToolAsync(toolCall);
+            messages.Add(new ChatMessage(ChatRole.Tool, result));
+        }
+        
+        // Re-invoke LLM with tool results
+        await foreach (var finalUpdate in chatClient.CompleteStreamingAsync(messages, options))
+        {
+            await turnContext.SendActivityAsync(finalUpdate.Text);
         }
     }
 }
 ```
 
-**Output Timeline**:
-
+**User experience improvement**:
 ```
-Time    Output
-0ms     ""
-100ms   "Hello"
-200ms   "Hello!"
-300ms   "Hello! How"
-400ms   "Hello! How can"
-500ms   "Hello! How can I"
-600ms   "Hello! How can I help"
-700ms   "Hello! How can I help you"
-800ms   "Hello! How can I help you today?"
+Non-streaming:
+  User input → [3 sec wait] → Full response displayed
+
+Streaming:
+  User input → [0.5 sec] → "## 📊" → "サマリー\n" → "今週は..." → ...
+                  Real-time display
 ```
 
 ---
 
-For complete LLM inference patterns, advanced tool calling scenarios, error handling, and performance optimization, please refer to the Japanese version at [../developer/13-CODE-WALKTHROUGHS/LLM-INFERENCE.md](../../../developer/13-CODE-WALKTHROUGHS/LLM-INFERENCE.md).
+## Error Handling

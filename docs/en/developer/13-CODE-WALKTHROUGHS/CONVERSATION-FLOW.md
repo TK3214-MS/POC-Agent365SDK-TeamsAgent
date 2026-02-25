@@ -1,79 +1,75 @@
-# Conversation Flow Walkthrough
+# Conversation Flow - Detailed Walkthrough
 
 [![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../../developer/13-CODE-WALKTHROUGHS/CONVERSATION-FLOW.md)
 [![English](https://img.shields.io/badge/lang-English-blue.svg)](CONVERSATION-FLOW.md)
 
 ## 📋 Overview
 
-This document provides a detailed walkthrough of the complete conversation flow from user message to bot response.
+This document explains the complete execution flow at the code level when a user sends "今週の商談サマリを教えてください" (Show me this week's sales summary) via Teams.
 
 ---
 
-## Flow Diagram
+## Entry Point: Bot/TeamsBot.cs
 
-```mermaid
-sequenceDiagram
-    participant User as 👤 User (Teams)
-    participant Bot as 🤖 TeamsBot
-    participant Agent as 💼 SalesAgent
-    participant AI as 🧠 AIAgent
-    participant Tools as 🔧 MCP Tools
-    participant Graph as 📊 Graph API
-    participant LLM as ☁️ LLM Provider
-    
-    User->>Bot: "Show this week's sales status"
-    Bot->>Agent: GenerateSalesSummaryAsync(request)
-    Agent->>AI: RunAsync(query)
-    AI->>LLM: CompleteAsync(messages)
-    LLM->>AI: ToolCall: SearchSalesEmails
-    AI->>Tools: SearchSalesEmails(startDate, endDate)
-    Tools->>Graph: Users[userId].Messages.GetAsync()
-    Graph->>Tools: Email data
-    Tools->>AI: Formatted email summary
-    AI->>LLM: CompleteAsync(messages + tool result)
-    LLM->>AI: Final response
-    AI->>Agent: AgentResponse
-    Agent->>Bot: SalesSummaryResponse
-    Bot->>User: Adaptive Card response
-```
-
----
-
-## Step-by-Step Code Walkthrough
-
-### Step 1: User Sends Message in Teams
-
-User sends message: **"Show this week's sales status"**
-
-### Step 2: TeamsBot Receives Message
-
-**Bot/TeamsBot.cs - OnMessageActivityAsync**:
+### OnMessageActivityAsync
 
 ```csharp
 protected override async Task OnMessageActivityAsync(
     ITurnContext<IMessageActivity> turnContext,
     CancellationToken cancellationToken)
 {
-    var userMessage = turnContext.Activity.Text;  // "Show this week's sales status"
+    // 1. Get user message
+    var userMessage = turnContext.Activity.Text;
+    var userId = turnContext.Activity.From.Id;
+    var conversationId = turnContext.Activity.Conversation.Id;
     
+    _logger.LogInformation(
+        "📨 メッセージ受信: User={UserId}, Message={Message}",
+        userId,
+        userMessage
+    );
+    
+    // 2. Build request
     var request = new SalesSummaryRequest
     {
         Query = userMessage,
-        StartDate = DateTime.Now.AddDays(-7),
+        StartDate = DateTime.Now.AddDays(-7),  // Default: this week
         EndDate = DateTime.Now
     };
     
+    // 3. Send typing indicator
+    await turnContext.SendActivitiesAsync(
+        new Activity[] { new Activity { Type = ActivityTypes.Typing } },
+        cancellationToken);
+    
+    // 4. Delegate processing to Sales Agent
     var response = await _salesAgent.GenerateSalesSummaryAsync(request);
     
+    // 5. Return response as Adaptive Card
+    var card = AdaptiveCardHelper.CreateSalesSummaryCard(response);
+    var attachment = new Attachment
+    {
+        ContentType = AdaptiveCard.ContentType,
+        Content = card
+    };
+    
     await turnContext.SendActivityAsync(
-        MessageFactory.Text(response.Response),
+        MessageFactory.Attachment(attachment),
         cancellationToken);
 }
 ```
 
-### Step 3: SalesAgent Processes Request
+**Runtime log output**:
+```
+info: SalesSupportAgent.Bot.TeamsBot[0]
+      📨 メッセージ受信: User="29:1AbC...", Message="今週の商談サマリを教えてください"
+```
 
-**Services/Agent/SalesAgent.cs - GenerateSalesSummaryAsync**:
+---
+
+## Sales Agent: Services/Agent/SalesAgent.cs
+
+### GenerateSalesSummaryAsync
 
 ```csharp
 public async Task<SalesSummaryResponse> GenerateSalesSummaryAsync(SalesSummaryRequest request)
@@ -81,160 +77,355 @@ public async Task<SalesSummaryResponse> GenerateSalesSummaryAsync(SalesSummaryRe
     var stopwatch = Stopwatch.StartNew();
     var operationId = Guid.NewGuid().ToString();
     
-    // Start observability tracking
+    // 1. Start detailed trace session
     var sessionId = _observabilityService.StartDetailedTrace(
         conversationId: operationId,
         userId: "API-User",
         userQuery: request.Query
     );
     
-    // Send start notification
-    await _notificationService.SendProgressNotificationAsync(
-        operationId, 
-        "🚀 Starting sales summary generation...", 
-        0);
-    
-    // Execute AI Agent
-    var agentResponse = await _agent.RunAsync(request.Query);
-    
-    stopwatch.Stop();
-    
-    // Return response
-    return new SalesSummaryResponse
+    _logger.LogInformation("商談サマリ生成開始: {Query}", request.Query);
+
+    try
     {
-        Response = agentResponse.Text,
-        ProcessingTimeMs = stopwatch.ElapsedMilliseconds
-    };
+        // 2. Phase 1: Request received
+        await _observabilityService.AddTracePhaseAsync(
+            sessionId,
+            "Request Received",
+            "商談サマリ生成リクエストを受信しました",
+            new { Query = request.Query }
+        );
+        
+        // 3. Notification: Start
+        await _notificationService.SendProgressNotificationAsync(
+            operationId,
+            "🚀 商談サマリ生成を開始しています...",
+            0
+        );
+        
+        // 4. Set date range
+        var startDate = request.StartDate ?? GetMondayOfCurrentWeek();
+        var endDate = request.EndDate ?? GetSundayOfCurrentWeek();
+        var enhancedQuery = $"{request.Query}\n\n期間: {startDate:yyyy-MM-dd} ~ {endDate:yyyy-MM-dd}";
+        
+        // 5. Phase 2: Query preparation
+        await _observabilityService.AddTracePhaseAsync(
+            sessionId,
+            "Query Preparation",
+            "日付範囲を含むクエリを準備しました",
+            new { EnhancedQuery = enhancedQuery }
+        );
+        
+        // 6. Notification: Data collection started
+        await _notificationService.SendProgressNotificationAsync(
+            operationId,
+            "📊 データ収集中（メール、カレンダー、ドキュメント）...",
+            25
+        );
+        
+        // 7. Execute AI Agent
+        var agentStopwatch = Stopwatch.StartNew();
+        var agentResponse = await _agent.RunAsync(enhancedQuery);
+        agentStopwatch.Stop();
+        
+        // 8. Phase 3: AI response received
+        var responseText = ExtractResponseText(agentResponse);
+        await _observabilityService.AddTracePhaseAsync(
+            sessionId,
+            "AI Response Received",
+            $"AIエージェントから応答を取得しました（{agentStopwatch.ElapsedMilliseconds}ms）",
+            new { DurationMs = agentStopwatch.ElapsedMilliseconds }
+        );
+        
+        // 9. Notification: AI analysis in progress
+        await _notificationService.SendProgressNotificationAsync(
+            operationId,
+            "🤖 AI分析中（サマリ生成処理）...",
+            75
+        );
+        
+        stopwatch.Stop();
+        
+        // 10. Notification: Complete
+        await _notificationService.SendSuccessNotificationAsync(
+            operationId,
+            $"✅ 商談サマリ生成完了！（処理時間: {stopwatch.ElapsedMilliseconds:N0}ms）",
+            new { ProcessingTimeMs = stopwatch.ElapsedMilliseconds }
+        );
+        
+        // 11. Record metrics
+        await _observabilityService.RecordRequestAsync(true, stopwatch.ElapsedMilliseconds);
+        
+        // 12. Complete session
+        await _observabilityService.CompleteDetailedTraceAsync(
+            sessionId,
+            responseText,
+            success: true
+        );
+        
+        return new SalesSummaryResponse
+        {
+            Response = responseText,
+            DataSources = new List<string> { "Outlook", "Calendar", "SharePoint" },
+            ProcessingTimeMs = stopwatch.ElapsedMilliseconds,
+            LLMProvider = _llmProvider.ProviderName
+        };
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "商談サマリ生成エラー");
+        
+        // Record error
+        await _observabilityService.CompleteDetailedTraceAsync(
+            sessionId,
+            $"エラー: {ex.Message}",
+            success: false
+        );
+        
+        return new SalesSummaryResponse
+        {
+            Response = $"❌ エラーが発生しました: {ex.Message}",
+            ProcessingTimeMs = stopwatch.ElapsedMilliseconds,
+            LLMProvider = _llmProvider.ProviderName
+        };
+    }
 }
 ```
 
-### Step 4: AIAgent Executes with Tool Calling
+**Runtime log output**:
+```
+info: SalesSupportAgent.Services.Agent.SalesAgent[0]
+      商談サマリ生成開始: 今週の商談サマリを教えてください
 
-**Agent executes LLM**:
+info: SalesSupportAgent.Services.Observability.ObservabilityService[0]
+      📊 Phase: Request Received
 
-```csharp
-var agentResponse = await _agent.RunAsync("Show this week's sales status...");
+info: SalesSupportAgent.Services.Notifications.NotificationService[0]
+      📢 通知送信: 🚀 商談サマリ生成を開始しています...
 ```
 
-**LLM analyzes query and decides to call tools**:
+---
 
+## AI Agent Execution
+
+### CreateAgent → RunAsync
+
+```csharp
+private AIAgent CreateAgent()
+{
+    var chatClient = _llmProvider.GetChatClient();
+    
+    var tools = new List<AITool>
+    {
+        AIFunctionFactory.Create(_emailTool.SearchSalesEmails),
+        AIFunctionFactory.Create(_calendarTool.SearchSalesMeetings),
+        AIFunctionFactory.Create(_sharePointTool.SearchSalesDocuments),
+    };
+    
+    return chatClient.AsAIAgent(
+        systemPrompt: SystemPrompt,
+        name: "営業支援エージェント",
+        tools: tools
+    );
+}
+```
+
+**Internal flow of RunAsync**:
+
+1. **Send query to LLM**
+```csharp
+// Executed internally by Microsoft.Extensions.AI
+var messages = new List<ChatMessage>
+{
+    new(ChatRole.System, SystemPrompt),
+    new(ChatRole.User, "今週の商談サマリを教えてください\n\n期間: 2026-02-03 ~ 2026-02-09")
+};
+
+var response = await chatClient.CompleteAsync(messages, new ChatOptions
+{
+    Tools = tools  // SearchSalesEmails, SearchSalesMeetings, ...
+});
+```
+
+2. **LLM decides on tool calls**
 ```json
 {
+  "role": "assistant",
   "tool_calls": [
     {
-      "function": "SearchSalesEmails",
-      "arguments": {
-        "startDate": "2026-02-03",
-        "endDate": "2026-02-10",
-        "keywords": "sales,deal,proposal"
-      }
-    },
-    {
-      "function": "SearchSalesMeetings",
-      "arguments": {
-        "startDate": "2026-02-03",
-        "endDate": "2026-02-10"
+      "id": "call_abc123",
+      "type": "function",
+      "function": {
+        "name": "SearchSalesEmails",
+        "arguments": "{\"startDate\":\"2026-02-03\",\"endDate\":\"2026-02-09\",\"keywords\":\"商談,提案\"}"
       }
     }
   ]
 }
 ```
 
-### Step 5: MCP Tools Execute
-
-**OutlookEmailTool.SearchSalesEmails**:
-
+3. **Tool execution → OutlookEmailTool**
 ```csharp
-public async Task<string> SearchSalesEmails(string startDate, string endDate, string keywords)
-{
-    var messages = await _graphClient.Users[_userId].Messages.GetAsync(config =>
-    {
-        config.QueryParameters.Filter = $"receivedDateTime ge {startDate} and receivedDateTime le {endDate}";
-        config.QueryParameters.Top = 50;
-        config.QueryParameters.Select = new[] { "subject", "from", "receivedDateTime" };
-    });
-    
-    return FormatEmailResults(messages, keywords);
-}
+var result = await _emailTool.SearchSalesEmails(
+    "2026-02-03",
+    "2026-02-09",
+    "商談,提案"
+);
+// Result: "📧 商談関連メール (5件)..."
 ```
 
-### Step 6: Graph API Returns Data
-
-**Email data returned**:
-
+4. **Return results to LLM and trigger next tool call**
 ```json
 {
-  "value": [
+  "role": "assistant",
+  "tool_calls": [
     {
-      "subject": "Sales proposal for ABC Corp",
-      "from": {"emailAddress": {"address": "sales@company.com"}},
-      "receivedDateTime": "2026-02-05T10:30:00Z"
-    },
-    {
-      "subject": "Q1 sales targets",
-      "from": {"emailAddress": {"address": "manager@company.com"}},
-      "receivedDateTime": "2026-02-04T14:00:00Z"
+      "function": {
+        "name": "SearchSalesMeetings",
+        "arguments": "{\"startDate\":\"2026-02-03\",\"endDate\":\"2026-02-09\"}"
+      }
     }
   ]
 }
 ```
 
-### Step 7: Tool Results Returned to LLM
-
-**Formatted tool results**:
-
-```
-📧 **Sales Emails (2 found)**
-- Sales proposal for ABC Corp (2026-02-05)
-- Q1 sales targets (2026-02-04)
-
-📅 **Sales Meetings (1 found)**
-- ABC Corp demo (2026-02-06, 14:00-15:00)
+5. **Tool execution → OutlookCalendarTool**
+```csharp
+var result = await _calendarTool.SearchSalesMeetings(
+    "2026-02-03",
+    "2026-02-09",
+    "商談,提案"
+);
+// Result: "📅 商談予定 (3件)..."
 ```
 
-### Step 8: LLM Generates Final Response
-
-**LLM combines tool results into final response**:
-
-```markdown
-## 📊 Sales Summary (Feb 3-10, 2026)
-
-### 📧 Email Activity
-- 2 sales-related emails
-- Key: Sales proposal for ABC Corp (in progress)
-
-### 📅 Scheduled Meetings
-- 1 sales meeting this week
-- ABC Corp demo on Feb 6
-
-### 💡 Insights
-- Active deal pipeline with ABC Corp
-- Q1 targets discussion ongoing
+6. **Final summary generation**
+```json
+{
+  "role": "assistant",
+  "content": "## 📊 サマリー\n今週は5件の商談メールと3件の予定があります。\n\n## 📧 商談メール\n- ...\n\n## 📅 商談予定\n- ..."
+}
 ```
 
-### Step 9: Response Sent to User
+---
 
-**TeamsBot sends Adaptive Card**:
+## Graph API Call: OutlookEmailTool
+
+### SearchSalesEmails
 
 ```csharp
-var adaptiveCard = AdaptiveCardHelper.CreateSalesSummaryCard(agentResponse.Text);
-await turnContext.SendActivityAsync(MessageFactory.Attachment(adaptiveCard));
+public async Task<string> SearchSalesEmails(
+    string startDate,
+    string endDate,
+    string keywords)
+{
+    try
+    {
+        var start = DateTime.Parse(startDate);
+        var end = DateTime.Parse(endDate).AddDays(1);
+        
+        // Graph API call
+        var messages = await _graphClient.Users[_userId].Messages
+            .GetAsync(config =>
+            {
+                config.QueryParameters.Filter = 
+                    $"receivedDateTime ge {start:yyyy-MM-ddTHH:mm:ssZ} " +
+                    $"and receivedDateTime le {end:yyyy-MM-ddTHH:mm:ssZ}";
+                config.QueryParameters.Top = 50;
+                config.QueryParameters.Select = new[]
+                {
+                    "subject", "from", "receivedDateTime", "bodyPreview"
+                };
+                config.QueryParameters.Orderby = new[] { "receivedDateTime desc" };
+            });
+        
+        // Keyword filtering
+        var keywordList = keywords.Split(',').Select(k => k.Trim()).ToList();
+        var filteredMessages = messages.Value
+            .Where(m => keywordList.Any(k =>
+                m.Subject?.Contains(k, StringComparison.OrdinalIgnoreCase) == true))
+            .ToList();
+        
+        // Generate summary
+        var summary = $"📧 **商談関連メール ({filteredMessages.Count}件)**\n\n";
+        foreach (var msg in filteredMessages.Take(10))
+        {
+            summary += $"- **{msg.Subject}**\n";
+            summary += $"  送信者: {msg.From?.EmailAddress?.Name}\n";
+            summary += $"  受信日時: {msg.ReceivedDateTime:yyyy/MM/dd HH:mm}\n\n";
+        }
+        
+        return summary;
+    }
+    catch (ServiceException ex)
+    {
+        _logger.LogError(ex, "Graph APIエラー: {Code}", ex.ResponseStatusCode);
+        return $"❌ メール取得エラー: {ex.Message}";
+    }
+}
+```
+
+**HTTP Request (internal)**:
+```http
+GET https://graph.microsoft.com/v1.0/users/user@company.com/messages?
+  $filter=receivedDateTime ge 2026-02-03T00:00:00Z and receivedDateTime le 2026-02-10T00:00:00Z
+  &$top=50
+  &$select=subject,from,receivedDateTime,bodyPreview
+  &$orderby=receivedDateTime desc
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc...
 ```
 
 ---
 
-## Performance Metrics
+## Complete Timeline
 
-| Phase | Time | Details |
-|-------|------|---------|
-| User → Bot | 10ms | Teams message routing |
-| Bot → Agent | 50ms | Request processing |
-| Agent → AI | 100ms | Agent initialization |
-| AI → Tools | 500ms | Graph API calls |
-| Tools → LLM | 5000ms | LLM inference |
-| LLM → User | 100ms | Response formatting |
-| **Total** | **5760ms** | **~6 seconds** |
+```
+[00:00.000] 📨 Bot: Message received "今週の商談サマリ"
+[00:00.050]    ├─ Build request
+[00:00.100]    ├─ Send typing indicator
+[00:00.150]    └─ Call SalesAgent.GenerateSalesSummaryAsync()
+
+[00:00.200] 🔍 SalesAgent: Start trace session
+[00:00.250]    ├─ Phase 1: Request Received
+[00:00.300]    ├─ Notification: 🚀 Start
+[00:00.350]    └─ Query enhancement: "今週の商談サマリ\n期間: 2026-02-03 ~ 2026-02-09"
+
+[00:00.400] 🤖 AI Agent: Execute RunAsync()
+[00:00.450]    └─ Send query to LLM
+
+[00:00.600] 🔧 LLM: Decide on tool calls
+[00:00.650]    └─ SearchSalesEmails("2026-02-03", "2026-02-09", "商談")
+
+[00:00.700] 📧 EmailTool: Graph API call
+[00:00.750]    ├─ TokenCredential: Use cached token
+[00:01.300]    ├─ Graph API: Retrieved 50 items (550ms)
+[00:01.350]    ├─ Keyword filtering: 5 matches
+[00:01.400]    └─ Generate summary: "📧 商談関連メール (5件)..."
+
+[00:01.500] 🔧 LLM: Next tool call
+[00:01.550]    └─ SearchSalesMeetings("2026-02-03", "2026-02-09")
+
+[00:01.600] 📅 CalendarTool: Graph API call
+[00:02.000]    └─ "📅 商談予定 (3件)..."
+
+[00:02.100] 🤖 LLM: Generate final summary
+[00:03.500]    └─ "## 📊 サマリー\n今週は5件の商談メールと..."
+
+[00:03.600] ✅ SalesAgent: Complete
+[00:03.650]    ├─ Extract response text
+[00:03.700]    ├─ Notification: ✅ Complete
+[00:03.750]    └─ Record metrics
+
+[00:03.800] 💬 Bot: Send Adaptive Card
+[00:03.850]    └─ Display to user
+
+Total processing time: 3850ms
+```
 
 ---
 
-For more detailed conversation flow analysis, error scenarios, and optimization strategies, please refer to the Japanese version at [../developer/13-CODE-WALKTHROUGHS/CONVERSATION-FLOW.md](../../../developer/13-CODE-WALKTHROUGHS/CONVERSATION-FLOW.md).
+## Next Steps
+
+- **[GRAPH-API-CALLS.md](GRAPH-API-CALLS.md)**: Graph API call patterns
+- **[LLM-INFERENCE.md](LLM-INFERENCE.md)**: LLM inference process
+- **[04-DATA-FLOW.md](../04-DATA-FLOW.md)**: Data flow details

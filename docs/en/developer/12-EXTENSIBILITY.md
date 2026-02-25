@@ -1,112 +1,141 @@
-# Extensibility - Adding New Tools and Features
+# Extensibility - Extensibility Patterns and Customization
 
 [![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../developer/12-EXTENSIBILITY.md)
 [![English](https://img.shields.io/badge/lang-English-blue.svg)](12-EXTENSIBILITY.md)
 
-## 📋 Extension Points
-
-- [Adding New MCP Tools](#adding-new-mcp-tools)
-- [Adding New LLM Providers](#adding-new-llm-providers)
-- [Custom Middleware](#custom-middleware)
-- [Custom Telemetry](#custom-telemetry)
-
----
-
-## Adding New MCP Tools
+## 📋 Adding New Tools
 
 ### Step 1: Create Tool Class
 
 ```csharp
-public class CustomDataTool
+using System.ComponentModel;
+using Microsoft.Graph;
+
+namespace SalesSupportAgent.Services.MCP.McpTools;
+
+public class OneDriveTool
 {
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<CustomDataTool> _logger;
+    private readonly GraphServiceClient _graphClient;
+    private readonly string _userId;
 
-    public CustomDataTool(HttpClient httpClient, ILogger<CustomDataTool> logger)
+    public OneDriveTool(GraphServiceClient graphClient, M365Settings settings)
     {
-        _httpClient = httpClient;
-        _logger = logger;
+        _graphClient = graphClient;
+        _userId = settings.UserId;
     }
-
-    [Description("Fetches custom sales data from external API")]
-    public async Task<string> GetCustomData(
-        [Description("Data category")] string category,
-        [Description("Date range")] string dateRange)
+    
+    [Description("Searches for sales documents from OneDrive")]
+    public async Task<string> SearchSalesDocuments(
+        [Description("Search keyword")] string query,
+        [Description("Maximum number of results")] int maxResults = 10)
     {
-        _logger.LogInformation("Fetching custom data: {Category}, {DateRange}", category, dateRange);
-        
-        var response = await _httpClient.GetAsync($"/api/data?category={category}&range={dateRange}");
-        var data = await response.Content.ReadAsStringAsync();
-        
-        return FormatData(data);
-    }
+        try
+        {
+            var items = await _graphClient.Users[_userId].Drive.Root
+                .Search(query)
+                .GetAsync(config =>
+                {
+                    config.QueryParameters.Top = maxResults;
+                    config.QueryParameters.Select = new[] { "name", "webUrl", "lastModifiedDateTime" };
+                });
 
-    private string FormatData(string rawData)
-    {
-        // Format logic
-        return $"📊 Custom Data:\n{rawData}";
+            var summary = $"📁 OneDrive Search Results ({items.Value.Count} items)\n\n";
+            foreach (var item in items.Value)
+            {
+                summary += $"- **{item.Name}**\n";
+                summary += $"  URL: {item.WebUrl}\n";
+                summary += $"  Updated: {item.LastModifiedDateTime:yyyy/MM/dd}\n\n";
+            }
+            
+            return summary;
+        }
+        catch (Exception ex)
+        {
+            return $"❌ OneDrive search error: {ex.Message}";
+        }
     }
 }
 ```
 
-### Step 2: Register in DI
+### Step 2: Register in DI Container
 
 **Program.cs**:
 
 ```csharp
-builder.Services.AddHttpClient<CustomDataTool>();
-builder.Services.AddSingleton<CustomDataTool>();
+// Register MCP tools
+builder.Services.AddSingleton<OutlookEmailTool>();
+builder.Services.AddSingleton<OutlookCalendarTool>();
+builder.Services.AddSingleton<OneDriveTool>();  // Added
 ```
 
-### Step 3: Add to Agent Tools
+### Step 3: Register with Agent
 
 **SalesAgent.cs**:
 
 ```csharp
-private AIAgent CreateAgent()
+public class SalesAgent
 {
-    var tools = new List<AITool>
+    private readonly OneDriveTool _oneDriveTool;  // Added
+    
+    public SalesAgent(
+        ILLMProvider llmProvider,
+        OutlookEmailTool emailTool,
+        OutlookCalendarTool calendarTool,
+        OneDriveTool oneDriveTool,  // Added
+        /* ... */)
     {
-        AIFunctionFactory.Create(_emailTool.SearchSalesEmails),
-        AIFunctionFactory.Create(_calendarTool.SearchSalesMeetings),
-        AIFunctionFactory.Create(_customDataTool.GetCustomData)  // NEW
-    };
-
-    return _chatClient.AsAIAgent(SystemPrompt, "Sales Agent", tools: tools);
+        _oneDriveTool = oneDriveTool;
+        // ...
+    }
+    
+    private AIAgent CreateAgent()
+    {
+        var tools = new List<AITool>
+        {
+            AIFunctionFactory.Create(_emailTool.SearchSalesEmails),
+            AIFunctionFactory.Create(_calendarTool.SearchSalesMeetings),
+            AIFunctionFactory.Create(_oneDriveTool.SearchSalesDocuments),  // Added
+        };
+        
+        return chatClient.AsAIAgent(SystemPrompt, "Sales Support Agent", tools: tools);
+    }
 }
-```
-
-### Step 4: Update System Prompt
-
-```csharp
-private const string SystemPrompt = @"
-You are a sales support agent with access to:
-1. SearchSalesEmails - Outlook emails
-2. SearchSalesMeetings - Calendar events
-3. GetCustomData - External sales data (NEW)
-
-Use GetCustomData to fetch additional metrics from the CRM system.
-";
 ```
 
 ---
 
-## Adding New LLM Providers
+## Adding a New LLM Provider
 
-### Step 1: Implement ILLMProvider
+### Step 1: Create Provider Class
 
 ```csharp
+using Microsoft.Extensions.AI;
+
+namespace SalesSupportAgent.Services.LLM;
+
 public class AnthropicProvider : ILLMProvider
 {
+    private readonly AnthropicSettings _settings;
     private readonly IChatClient _chatClient;
+
+    public string ProviderName => "Anthropic Claude";
 
     public AnthropicProvider(AnthropicSettings settings)
     {
+        _settings = settings;
+        
         _chatClient = new ChatClientBuilder()
-            .Use(new AnthropicChatClient(
-                apiKey: settings.ApiKey,
-                modelId: settings.ModelId))
-            .UseOpenTelemetry(sourceName: "SalesSupportAgent")
+            .Use(new HttpClient
+            {
+                BaseAddress = new Uri("https://api.anthropic.com"),
+                DefaultRequestHeaders =
+                {
+                    { "x-api-key", settings.ApiKey },
+                    { "anthropic-version", "2023-06-01" }
+                }
+            }.AsChatClient(settings.Model))
+            .UseOpenTelemetry()
+            .UseLogging()
             .UseFunctionInvocation()
             .Build();
     }
@@ -115,9 +144,25 @@ public class AnthropicProvider : ILLMProvider
 }
 ```
 
-### Step 2: Add Configuration
+### Step 2: Add Settings Class
 
-**appsettings.json**:
+```csharp
+public class AnthropicSettings
+{
+    public string ApiKey { get; set; } = string.Empty;
+    public string Model { get; set; } = "claude-3-opus-20240229";
+}
+
+public class LLMSettings
+{
+    public string Provider { get; set; } = "AzureOpenAI";
+    public AzureOpenAISettings AzureOpenAI { get; set; } = new();
+    public OllamaSettings Ollama { get; set; } = new();
+    public AnthropicSettings Anthropic { get; set; } = new();  // Added
+}
+```
+
+### Step 3: appsettings.json
 
 ```json
 {
@@ -125,31 +170,32 @@ public class AnthropicProvider : ILLMProvider
     "Provider": "Anthropic",
     "Anthropic": {
       "ApiKey": "sk-ant-...",
-      "ModelId": "claude-3-opus"
+      "Model": "claude-3-opus-20240229"
     }
   }
 }
 ```
 
-### Step 3: Register in DI
+### Step 4: Register in Program.cs
 
 ```csharp
 builder.Services.AddSingleton<ILLMProvider>(sp =>
 {
     var settings = sp.GetRequiredService<LLMSettings>();
-    return settings.Provider switch
+    
+    return settings.Provider?.ToLower() switch
     {
-        "AzureOpenAI" => new AzureOpenAIProvider(settings.AzureOpenAI),
-        "Ollama" => new OllamaProvider(settings.Ollama),
-        "Anthropic" => new AnthropicProvider(settings.Anthropic),  // NEW
-        _ => throw new NotSupportedException($"Provider {settings.Provider} not supported")
+        "azureopenai" => new AzureOpenAIProvider(settings.AzureOpenAI),
+        "ollama" => new OllamaProvider(settings.Ollama),
+        "anthropic" => new AnthropicProvider(settings.Anthropic),  // Added
+        _ => throw new NotSupportedException($"Provider: {settings.Provider}")
     };
 });
 ```
 
 ---
 
-## Custom Middleware
+## Adding Custom Middleware
 
 ### Custom Logging Middleware
 
@@ -158,40 +204,184 @@ public class CustomLoggingMiddleware : DelegatingChatClient
 {
     private readonly ILogger _logger;
 
-    public CustomLoggingMiddleware(IChatClient innerClient, ILogger logger) 
+    public CustomLoggingMiddleware(IChatClient innerClient, ILogger logger)
         : base(innerClient)
     {
         _logger = logger;
     }
 
     public override async Task<ChatCompletion> CompleteAsync(
-        IList<ChatMessage> messages,
-        ChatOptions options = null,
+        IList<ChatMessage> chatMessages,
+        ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("LLM Request: {MessageCount} messages", messages.Count);
-        
+        _logger.LogInformation("🚀 LLM request started: {MessageCount} messages", chatMessages.Count);
         var sw = Stopwatch.StartNew();
-        var response = await base.CompleteAsync(messages, options, cancellationToken);
         
-        _logger.LogInformation("LLM Response: {Latency}ms, {TokenCount} tokens", 
-            sw.ElapsedMilliseconds, 
-            response.Usage?.TotalTokenCount);
-        
-        return response;
+        try
+        {
+            var response = await base.CompleteAsync(chatMessages, options, cancellationToken);
+            _logger.LogInformation("✅ LLM response received: {Duration}ms", sw.ElapsedMilliseconds);
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ LLM error: {Duration}ms", sw.ElapsedMilliseconds);
+            throw;
+        }
     }
 }
 ```
 
-### Register Middleware
+**Add to Builder**:
 
 ```csharp
-_chatClient = new ChatClientBuilder()
-    .Use(CreateBaseClient())
-    .Use(client => new CustomLoggingMiddleware(client, logger))  // Add middleware
+var chatClient = new ChatClientBuilder()
+    .Use(baseClient)
+    .Use(new CustomLoggingMiddleware(/* ... */))  // Custom middleware
+    .UseOpenTelemetry()
     .Build();
 ```
 
 ---
 
-For complete extension guides, plugin architecture, event hooks, and custom storage providers, please refer to the Japanese version at [../developer/12-EXTENSIBILITY.md](../../developer/12-EXTENSIBILITY.md).
+## Plugin Architecture
+
+### Interface Definition
+
+```csharp
+public interface IAgentPlugin
+{
+    string Name { get; }
+    string Description { get; }
+    Task<string> ExecuteAsync(string input);
+}
+```
+
+### Plugin Implementation
+
+```csharp
+public class SentimentAnalysisPlugin : IAgentPlugin
+{
+    public string Name => "Sentiment Analysis";
+    public string Description => "Analyzes the sentiment of messages";
+
+    public async Task<string> ExecuteAsync(string input)
+    {
+        // Sentiment analysis using Azure Text Analytics API
+        var sentiment = await AnalyzeSentimentAsync(input);
+        return $"Sentiment score: {sentiment.Score}, Type: {sentiment.Type}";
+    }
+}
+```
+
+### Plugin Manager
+
+```csharp
+public class PluginManager
+{
+    private readonly List<IAgentPlugin> _plugins = new();
+
+    public void RegisterPlugin(IAgentPlugin plugin)
+    {
+        _plugins.Add(plugin);
+    }
+
+    public async Task<string> ExecutePluginAsync(string pluginName, string input)
+    {
+        var plugin = _plugins.FirstOrDefault(p => p.Name == pluginName);
+        if (plugin == null)
+            throw new InvalidOperationException($"Plugin {pluginName} not found");
+
+        return await plugin.ExecuteAsync(input);
+    }
+}
+```
+
+---
+
+## Adaptive Card Customization
+
+### Custom Card Template
+
+```csharp
+public static AdaptiveCard CreateSalesSummaryCard(SalesSummaryResponse response)
+{
+    return new AdaptiveCard(new AdaptiveSchemaVersion(1, 5))
+    {
+        Body = new List<AdaptiveElement>
+        {
+            new AdaptiveTextBlock
+            {
+                Text = "📊 Sales Summary",
+                Size = AdaptiveTextSize.ExtraLarge,
+                Weight = AdaptiveTextWeight.Bolder
+            },
+            new AdaptiveTextBlock
+            {
+                Text = response.Response,
+                Wrap = true
+            },
+            new AdaptiveFactSet
+            {
+                Facts = new List<AdaptiveFact>
+                {
+                    new AdaptiveFact("Processing Time", $"{response.ProcessingTimeMs}ms"),
+                    new AdaptiveFact("Data Sources", string.Join(", ", response.DataSources)),
+                    new AdaptiveFact("LLM Provider", response.LLMProvider)
+                }
+            }
+        },
+        Actions = new List<AdaptiveAction>
+        {
+            new AdaptiveOpenUrlAction
+            {
+                Title = "View Details",
+                Url = new Uri("https://example.com/details")
+            }
+        }
+    };
+}
+```
+
+---
+
+## Feature Toggle via Configuration
+
+### Feature Flags
+
+```csharp
+public class FeatureSettings
+{
+    public bool EnableSharePointSearch { get; set; } = true;
+    public bool EnableTeamsMessages { get; set; } = false;
+    public bool EnableSentimentAnalysis { get; set; } = false;
+}
+```
+
+**Conditional Tool Registration**:
+
+```csharp
+var tools = new List<AITool>
+{
+    AIFunctionFactory.Create(_emailTool.SearchSalesEmails),
+    AIFunctionFactory.Create(_calendarTool.SearchSalesMeetings),
+};
+
+if (_featureSettings.EnableSharePointSearch)
+{
+    tools.Add(AIFunctionFactory.Create(_sharePointTool.SearchSalesDocuments));
+}
+
+if (_featureSettings.EnableTeamsMessages)
+{
+    tools.Add(AIFunctionFactory.Create(_teamsTool.SearchSalesMessages));
+}
+```
+
+---
+
+## Next Steps
+
+- **[06-SDK-INTEGRATION-PATTERNS.md](06-SDK-INTEGRATION-PATTERNS.md)**: SDK Integration Patterns
+- **[13-CODE-WALKTHROUGHS/](13-CODE-WALKTHROUGHS/)**: Code Walkthroughs

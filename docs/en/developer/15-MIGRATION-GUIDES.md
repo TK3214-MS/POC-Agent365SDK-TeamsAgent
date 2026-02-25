@@ -1,188 +1,375 @@
-# Migration Guides - Upgrade Paths and Breaking Changes
+# Migration Guides - Version Upgrade and Migration Guide
 
 [![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../../developer/15-MIGRATION-GUIDES.md)
 [![English](https://img.shields.io/badge/lang-English-blue.svg)](15-MIGRATION-GUIDES.md)
 
-## 📋 Migration Paths
-
-- [From Bot Framework v3 to v4](#from-bot-framework-v3-to-v4)
-- [From Semantic Kernel to Microsoft.Extensions.AI](#from-semantic-kernel-to-microsoftextensionsai)
-- [From Manual Observability to Agent 365 SDK](#from-manual-observability-to-agent-365-sdk)
-
----
-
-## From Bot Framework v3 to v4
+## 📋 .NET 8 → .NET 10 Migration
 
 ### Key Changes
 
-| v3 | v4 |
-|--- |---|
-| `IDialogContext` | `ITurnContext` |
-| `IMessageActivity` | `Activity.Type == "message"` |
-| `context.PostAsync()` | `turnContext.SendActivityAsync()` |
+#### 1. Agent 365 SDK Integration
 
-### Code Migration
-
-**v3 (Old)**:
-
+**.NET 8 (Legacy)**:
 ```csharp
-public async Task MessageReceived(IDialogContext context, IAwaitable<IMessageActivity> argument)
-{
-    var message = await argument;
-    await context.PostAsync($"You said: {message.Text}");
-}
+// Manual OpenTelemetry configuration
+builder.Services.AddOpenTelemetry()
+    .WithTracing(/* detailed configuration */);
 ```
 
-**v4 (New)**:
-
+**.NET 10 (Agent 365)**:
 ```csharp
-protected override async Task OnMessageActivityAsync(
-    ITurnContext<IMessageActivity> turnContext,
-    CancellationToken cancellationToken)
-{
-    await turnContext.SendActivityAsync(
-        MessageFactory.Text($"You said: {turnContext.Activity.Text}"),
-        cancellationToken);
-}
-```
-
----
-
-## From Semantic Kernel to Microsoft.Extensions.AI
-
-### Motivation
-
-- ✅ **Unified API**: Microsoft.Extensions.AI provides standard chat interface
-- ✅ **Middleware Support**: Easily add telemetry, logging, caching
-- ✅ **Provider Agnostic**: Switch between Azure OpenAI, Ollama, Anthropic
-
-### Code Migration
-
-**Semantic Kernel (Old)**:
-
-```csharp
-var kernel = new KernelBuilder()
-    .WithAzureChatCompletionService(deploymentName, endpoint, apiKey)
-    .Build();
-
-var result = await kernel.InvokeAsync("Tell me about sales");
-```
-
-**Microsoft.Extensions.AI (New)**:
-
-```csharp
-var chatClient = new ChatClientBuilder()
-    .Use(new AzureOpenAIChatClient(endpoint, credential, deploymentName))
-    .UseOpenTelemetry()
-    .UseFunctionInvocation()
-    .Build();
-
-var response = await chatClient.CompleteAsync(new List<ChatMessage>
-{
-    new ChatMessage(ChatRole.User, "Tell me about sales")
-});
-```
-
-### Tool/Function Migration
-
-**Semantic Kernel (Old)**:
-
-```csharp
-[SKFunction, Description("Search emails")]
-public async Task<string> SearchEmails(string query)
-{
-    // Implementation
-}
-```
-
-**Microsoft.Extensions.AI (New)**:
-
-```csharp
-[Description("Search emails")]
-public async Task<string> SearchEmails(
-    [Description("Search query")] string query)
-{
-    // Implementation
-}
-
-// Register
-var tools = new List<AITool>
-{
-    AIFunctionFactory.Create(SearchEmails)
-};
-```
-
----
-
-## From Manual Observability to Agent 365 SDK
-
-### Before: Manual ActivitySource
-
-```csharp
-private static readonly ActivitySource _activitySource = new ActivitySource("MyAgent");
-
-public async Task ProcessAsync()
-{
-    using var activity = _activitySource.StartActivity("Process");
-    activity?.SetTag(...);
-    
-    // Manual metrics
-    _requestCounter.Add(1);
-    _latencyHistogram.Record(...);
-}
-```
-
-### After: Agent 365 SDK
-
-```csharp
+// Simplified with Agent 365 SDK
 builder.Services.AddAgent365Observability(options =>
 {
     options.ActivitySourceName = "SalesSupportAgent";
-    options.MeterName = "SalesSupportAgent.Metrics";
+    options.EnableDetailedSpans = true;
 });
-
-// Automatic tracing and metrics for all AI operations
 ```
 
----
+#### 2. Introducing Microsoft.Extensions.AI
 
-## Breaking Changes in Agent 365 SDK v1.0 → v2.0
-
-### 1. Notification API Changes
-
-**v1.0 (Old)**:
-
+**.NET 8 (Legacy)**:
 ```csharp
-await _notificationService.SendNotificationAsync(new Notification
+// Provider-specific client
+var openAIClient = new OpenAIClient(apiKey);
+var completion = await openAIClient.GetChatCompletionsAsync(/* ... */);
+```
+
+**.NET 10 (Microsoft.Extensions.AI)**:
+```csharp
+// Unified interface
+var chatClient = new ChatClientBuilder()
+    .Use(new AzureOpenAIClient(endpoint, credential).AsChatClient(deployment))
+    .UseOpenTelemetry()
+    .Build();
+
+var completion = await chatClient.CompleteAsync(messages);
+```
+
+### Migration Steps
+
+#### Step 1: Update Project File
+
+```xml
+<!-- SalesSupportAgent.csproj -->
+<PropertyGroup>
+  <TargetFramework>net10.0</TargetFramework>  <!-- Changed from net8.0 -->
+</PropertyGroup>
+
+<ItemGroup>
+  <!-- Agent 365 SDK -->
+  <PackageReference Include="Microsoft.Agents.A365.Observability" Version="1.0.0" />
+  <PackageReference Include="Microsoft.Agents.A365.Tooling" Version="1.0.0" />
+  
+  <!-- Microsoft.Extensions.AI -->
+  <PackageReference Include="Microsoft.Extensions.AI" Version="9.0.0" />
+  <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="9.0.0" />
+  
+  <!-- Remove legacy packages -->
+  <!-- <PackageReference Include="Azure.AI.OpenAI" Version="1.0.0" /> -->
+</ItemGroup>
+```
+
+#### Step 2: Update LLM Provider Implementation
+
+**Before (.NET 8)**:
+```csharp
+public class OpenAIService
 {
-    Message = "Processing...",
-    Level = NotificationLevel.Info
-});
+    private readonly OpenAIClient _client;
+    
+    public async Task<string> GenerateAsync(string prompt)
+    {
+        var options = new ChatCompletionsOptions
+        {
+            Messages = { new ChatMessage(ChatRole.User, prompt) }
+        };
+        
+        var response = await _client.GetChatCompletionsAsync(deployment, options);
+        return response.Value.Choices[0].Message.Content;
+    }
+}
 ```
 
-**v2.0 (New)**:
-
+**After (.NET 10)**:
 ```csharp
-await _notificationService.SendProgressNotificationAsync(
-    operationId: "op-123",
-    message: "Processing...",
-    progressPercentage: 50);
+public class AzureOpenAIProvider : ILLMProvider
+{
+    private readonly IChatClient _chatClient;
+    
+    public IChatClient GetChatClient() => _chatClient;
+    
+    public async Task<string> GenerateAsync(string prompt)
+    {
+        var messages = new List<ChatMessage>
+        {
+            new ChatMessage(ChatRole.User, prompt)
+        };
+        
+        var response = await _chatClient.CompleteAsync(messages);
+        return response.Message.Content;
+    }
+}
 ```
 
-### 2. ObservabilityService Constructor
+#### Step 3: Update Observability Code
 
-**v1.0 (Old)**:
-
+**Before (.NET 8)**:
 ```csharp
-var obsService = new ObservabilityService(signalRHub);
+using var activity = Activity.Current?.Source.StartActivity("Operation");
+activity?.SetTag("key", "value");
 ```
 
-**v2.0 (New)**:
-
+**After (.NET 10)**:
 ```csharp
-builder.Services.AddAgent365Observability();  // DI registration
+// Using Agent 365 Observability Service
+await _observabilityService.RecordTraceAsync("Operation started", "info", 0);
+await _observabilityService.AddTracePhaseAsync(sessionId, "Phase1", "Description");
 ```
 
 ---
 
-For complete migration guides, version compatibility matrix, and upgrade checklists, please refer to the Japanese version at [../developer/15-MIGRATION-GUIDES.md](../../developer/15-MIGRATION-GUIDES.md).
+## Agent Identity → Application-only Authentication
+
+### Terminology Unification
+
+| Legacy | New | Description |
+|--------|-----|-------------|
+| Agent Identity | Application-only Authentication | Unified terminology |
+| Service Principal | Client Secret / Managed Identity | Implementation method |
+
+### Code Update
+
+**Before**:
+```csharp
+// Using the term "Agent Identity"
+builder.Services.AddAgentIdentity(options => { /* ... */ });
+```
+
+**After**:
+```csharp
+// Unified as "Application-only Authentication"
+builder.Services.AddSingleton<TokenCredential>(sp =>
+{
+    return new ClientSecretCredential(
+        tenantId, clientId, clientSecret
+    );
+});
+```
+
+---
+
+## GitHub Models Integration
+
+### New Addition (.NET 10)
+
+```csharp
+public class GitHubModelsProvider : ILLMProvider
+{
+    public GitHubModelsProvider(GitHubModelsSettings settings)
+    {
+        var httpClient = new HttpClient
+        {
+            BaseAddress = new Uri("https://models.inference.ai.azure.com"),
+            DefaultRequestHeaders =
+            {
+                Authorization = new AuthenticationHeaderValue("Bearer", settings.Token)
+            }
+        };
+        
+        _chatClient = new ChatClientBuilder()
+            .Use(httpClient.AsChatClient(settings.Model))
+            .UseOpenTelemetry()
+            .Build();
+    }
+}
+```
+
+**appsettings.json**:
+```json
+{
+  "LLM": {
+    "Provider": "GitHubModels",
+    "GitHubModels": {
+      "Token": "github_pat_...",
+      "Model": "gpt-4o"
+    }
+  }
+}
+```
+
+---
+
+## Observability Dashboard Implementation
+
+### Adding SignalR Hub
+
+**New file**: `Hubs/ObservabilityHub.cs`
+
+```csharp
+using Microsoft.AspNetCore.SignalR;
+
+namespace SalesSupportAgent.Hubs;
+
+public class ObservabilityHub : Hub
+{
+    public async Task SendTrace(string message)
+    {
+        await Clients.All.SendAsync("ReceiveTrace", message);
+    }
+}
+```
+
+**Program.cs update**:
+```csharp
+// SignalR registration
+builder.Services.AddSignalR();
+
+// Endpoint mapping
+app.MapHub<ObservabilityHub>("/hubs/observability");
+```
+
+---
+
+## Handling Breaking Changes
+
+### 1. IChatClient Interface Changes
+
+**.NET 8 (Azure.AI.OpenAI)**:
+```csharp
+var response = await client.GetChatCompletionsAsync(deployment, options);
+var content = response.Value.Choices[0].Message.Content;
+```
+
+**.NET 10 (Microsoft.Extensions.AI)**:
+```csharp
+var response = await client.CompleteAsync(messages, options);
+var content = response.Message.Content;
+```
+
+### 2. Tool Invocation Schema
+
+**.NET 8**:
+```csharp
+var functionDefinition = new FunctionDefinition
+{
+    Name = "search_emails",
+    Description = "Email search",
+    Parameters = BinaryData.FromObjectAsJson(parametersSchema)
+};
+```
+
+**.NET 10**:
+```csharp
+var tool = AIFunctionFactory.Create(
+    _emailTool.SearchSalesEmails  // Auto-generated from method reference
+);
+```
+
+---
+
+## Test Code Updates
+
+### Moq Version Upgrade
+
+```xml
+<!-- .NET 8 -->
+<PackageReference Include="Moq" Version="4.18.4" />
+
+<!-- .NET 10 -->
+<PackageReference Include="Moq" Version="4.20.0" />
+```
+
+### Test Case Updates
+
+```csharp
+// .NET 10 compatible
+[Fact]
+public async Task CompleteAsync_Success_ReturnsResponse()
+{
+    var mockClient = new Mock<IChatClient>();
+    mockClient
+        .Setup(x => x.CompleteAsync(
+            It.IsAny<IList<ChatMessage>>(),
+            It.IsAny<ChatOptions>(),
+            default))
+        .ReturnsAsync(new ChatCompletion
+        {
+            Message = new ChatMessage(ChatRole.Assistant, "Test response")
+        });
+    
+    var provider = new MockLLMProvider(mockClient.Object);
+    var result = await provider.GetChatClient().CompleteAsync(messages);
+    
+    Assert.Equal("Test response", result.Message.Content);
+}
+```
+
+---
+
+## Rollback Procedures
+
+### .NET 10 → .NET 8 Downgrade
+
+```bash
+# 1. Update project file
+# Change TargetFramework to net8.0
+
+# 2. Restore packages
+dotnet restore
+
+# 3. Verify build
+dotnet build
+
+# 4. Run tests
+dotnet test
+```
+
+**Tips for maintaining compatibility**:
+- Keep the ILLMProvider interface intact
+- Retain legacy implementation classes
+- Enable switching via Feature Flags
+
+---
+
+## Checklist
+
+### Migration Completion Checklist
+
+- [ ] Confirm .NET 10 SDK installation
+- [ ] Update `TargetFramework`
+- [ ] Add Agent 365 SDK packages
+- [ ] Add Microsoft.Extensions.AI packages
+- [ ] Update LLM provider implementation
+- [ ] Update observability code
+- [ ] Update test code
+- [ ] Verify successful build
+- [ ] Confirm all tests pass
+- [ ] Integration testing before production deployment
+
+---
+
+## Troubleshooting
+
+### Build Errors
+
+**Error**: `The type or namespace name 'ChatCompletionsOptions' could not be found`
+
+**Cause**: Reference to the old Azure.AI.OpenAI package
+
+**Solution**: Update to Microsoft.Extensions.AI
+
+### Runtime Errors
+
+**Error**: `Unable to resolve service for type 'IChatClient'`
+
+**Cause**: Missing DI container registration
+
+**Solution**: Verify ILLMProvider registration in Program.cs
+
+---
+
+## Next Steps
+
+- **[01-SDK-OVERVIEW.md](01-SDK-OVERVIEW.md)**: New SDK overview
+- **[DEPLOYMENT-AZURE.md](../DEPLOYMENT-AZURE.md)**: .NET 10 deployment

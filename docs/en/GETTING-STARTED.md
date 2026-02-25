@@ -618,7 +618,7 @@ For details, refer to the [Troubleshooting Guide](TROUBLESHOOTING.md).
 
 ## 📚 Related Documentation
 
-- [README](../README.md) - Project overview
+- [README](README.md) - Project overview
 - [Architecture](ARCHITECTURE.md) - System design details
 - [Authentication](AUTHENTICATION.md) - App Registration details
 - [Sample Data](SAMPLE-DATA.md) - Test data generation
