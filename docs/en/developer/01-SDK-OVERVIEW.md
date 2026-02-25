@@ -675,3 +675,141 @@ graph TB
 1. **Teams Bot** (`TeamsBot.cs`): Receives user message
 2. **Sales Agent** (`SalesAgent.cs`): Starts message processing
 3. **Agent 365 Observability**: Starts span, begins recording metrics
+4. **IChatClient**: Sends message to LLM
+5. **OpenTelemetry Middleware**: Traces the LLM call
+6. **FunctionInvocation Middleware**: Detects tool call
+7. **Agent 365 Tooling**: Executes `search_emails` tool
+8. **OutlookEmailTool**: Searches emails via Graph API
+9. **GraphServiceClient**: Calls Microsoft Graph API
+10. **Graph Mail API**: Retrieves email data
+11. **Result flows back**: Graph → Tool → LLM → Agent → Bot → User
+12. **Agent 365 Notifications**: Sends real-time notification
+13. **Agent 365 Observability**: Ends span, records metrics
+
+---
+
+## Overall Architecture
+
+### Layer Structure
+
+```mermaid
+graph TB
+    subgraph "Presentation Layer"
+        TeamsUI[Teams UI]
+        Dashboard[Observability Dashboard]
+    end
+    
+    subgraph "Bot Framework Layer"
+        BotAdapter[Bot Adapter]
+        TeamsBot[Teams Bot]
+    end
+    
+    subgraph "Application Layer"
+        SalesAgent[Sales Agent]
+        MessageProcessor[Message Processor]
+    end
+    
+    subgraph "AI Abstraction Layer"
+        IChatClient[IChatClient]
+        ChatBuilder[Chat Builder]
+        Middlewares[Middlewares]
+    end
+    
+    subgraph "SDK Integration Layer"
+        Agent365[Agent 365 SDK]
+        M365[Microsoft 365 SDK]
+    end
+    
+    subgraph "Infrastructure Layer"
+        LLM[LLM Providers]
+        GraphAPI[Graph API]
+        SignalR[SignalR]
+        OpenTelemetry[OpenTelemetry]
+    end
+    
+    TeamsUI -->|Message| BotAdapter
+    Dashboard -->|Connect| SignalR
+    BotAdapter -->|Routing| TeamsBot
+    TeamsBot -->|Delegates| SalesAgent
+    SalesAgent -->|LLM call| IChatClient
+    SalesAgent -->|Message processing| MessageProcessor
+    IChatClient -->|Built by| ChatBuilder
+    ChatBuilder -->|Applies| Middlewares
+    Middlewares -->|Integrates| Agent365
+    SalesAgent -->|Tool call| Agent365
+    Agent365 -->|Sends notification| SignalR
+    Agent365 -->|Telemetry| OpenTelemetry
+    MessageProcessor -->|Data retrieval| M365
+    M365 -->|API call| GraphAPI
+    Middlewares -->|Provider call| LLM
+    
+    style TeamsUI fill:#e1f5ff
+    style Dashboard fill:#e1f5ff
+    style SalesAgent fill:#fff4e1
+    style IChatClient fill:#fff4e1
+    style Agent365 fill:#f0e1ff
+    style M365 fill:#e1ffe1
+```
+
+---
+
+## Development Flow
+
+### Typical Development Tasks and SDK Usage
+
+| Task | SDK Used | Key Components |
+|------|----------|----------------|
+| **Add a new tool** | Agent 365 Tooling, M365 | `[Agent365Tool]` attribute, GraphServiceClient |
+| **Add an LLM provider** | Microsoft.Extensions.AI | `IChatClient` implementation, Builder update |
+| **Change authentication method** | M365 | `TokenCredential` implementation, DI configuration |
+| **Enhance telemetry** | Agent 365 Observability | ActivitySource, Meter |
+| **Add notification features** | Agent 365 Notifications | INotificationService |
+| **Create Adaptive Cards** | Bot Framework | AdaptiveCardHelper |
+
+### Development Environment Setup
+
+```bash
+# 1. Restore NuGet packages
+dotnet restore
+
+# 2. Check required SDK versions
+dotnet list package
+
+# Key packages:
+# - Microsoft.Graph: 5.x
+# - Agent365.Observability: 1.x
+# - Microsoft.Extensions.AI: 9.x
+# - Bot.Builder: 4.x
+# - OpenTelemetry: 1.x
+
+# 3. Local development LLM (Ollama)
+brew install ollama
+ollama pull llama2
+
+# 4. Dev Tunnel setup
+devtunnel create --allow-anonymous
+devtunnel port create -p 5000
+devtunnel host
+```
+
+### Next Steps
+
+For detailed integration methods of each SDK, refer to the following documents:
+
+- **[03-AUTHENTICATION-FLOW.md](03-AUTHENTICATION-FLOW.md)**: Detailed explanation of authentication flows
+- **[04-DATA-FLOW.md](04-DATA-FLOW.md)**: Data flows and Graph API calls
+- **[06-SDK-INTEGRATION-PATTERNS.md](06-SDK-INTEGRATION-PATTERNS.md)**: SDK integration patterns and best practices
+- **[13-CODE-WALKTHROUGHS/](13-CODE-WALKTHROUGHS/)**: Actual code walkthroughs
+
+---
+
+## Summary
+
+Sales Support Agent is built by combining the following SDKs:
+
+1. **Microsoft 365 SDK**: Microsoft Graph API integration
+2. **Agent 365 SDK**: Agent framework (observability, tooling, notifications)
+3. **Microsoft.Extensions.AI**: LLM abstraction layer
+4. **Bot Framework**: Teams integration
+
+Each SDK has a clear role and is integrated in a loosely coupled manner, making it possible to extend or replace them individually.
