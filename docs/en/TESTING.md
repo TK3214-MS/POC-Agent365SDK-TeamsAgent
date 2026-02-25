@@ -9,27 +9,25 @@
 
 ## 📋 Overview
 
-This guide explains comprehensive testing strategy for the Sales Support Agent. Covers test creation and execution using xUnit, Moq, and Microsoft.Bot.Builder.Testing.
+This guide describes the comprehensive testing strategy for the Sales Support Agent. It covers how to create and run tests using xUnit, Moq, and Microsoft.Bot.Builder.Testing.
 
 ### 💡 Test Pyramid
 
 ```
        ┌────────────┐
-       │  E2E (5%)  │  Teams UI, real environment tests
+       │   E2E (5%) │  Teams UI, real environment tests
        ├────────────┤
-       │ Integration│  Bot + Graph API, LLM integration
-       │    (15%)   │
+       │ Integ (15%) │  Bot + Graph API, LLM integration
        ├────────────┤
-       │   Unit     │  MCP Tools, logic units
-       │   (80%)    │
+       │ Unit (80%)  │  MCP Tools, isolated logic
        └────────────┘
 ```
 
 | Layer | Purpose | Tools |
 |-------|---------|-------|
-| **Unit Tests** | Validate single functions/classes | xUnit, Moq |
-| **Integration Tests** | Verify component interactions | xUnit, TestServer |
-| **E2E Tests** | End-to-end operation verification | Playwright, Selenium |
+| **Unit Tests** | Verify single function/class behavior | xUnit, Moq |
+| **Integration Tests** | Confirm inter-component coordination | xUnit, TestServer |
+| **E2E Tests** | End-to-end behavior verification | Playwright, Selenium |
 
 ---
 
@@ -39,7 +37,7 @@ This guide explains comprehensive testing strategy for the Sales Support Agent. 
 
 ```bash
 # Navigate to test project directory
-cd /Users/tk3214/GitHub/POC-Agent365SDK-TeamsAgent
+cd /path/to/POC-Agent365SDK-TeamsAgent
 
 # Create xUnit test project
 dotnet new xunit -n SalesSupportAgent.Tests
@@ -73,8 +71,10 @@ SalesSupportAgent.Tests/
 │   │   │   └── OllamaProviderTests.cs
 │   │   └── Agent/
 │   │       └── SalesAgentTests.cs
-│   └── Bot/
-│       └── TeamsBotTests.cs
+│   ├── Bot/
+│   │   └── TeamsBotTests.cs
+│   └── Helpers/
+│       └── AdaptiveCardHelperTests.cs
 ├── Integration/                   # Integration tests
 │   ├── GraphIntegrationTests.cs
 │   ├── BotIntegrationTests.cs
@@ -96,6 +96,7 @@ using Xunit;
 using Moq;
 using FluentAssertions;
 using Microsoft.Graph;
+using Microsoft.Extensions.Logging;
 using SalesSupportAgent.Services.MCP.McpTools;
 
 public class OutlookEmailToolTests
@@ -122,7 +123,7 @@ public class OutlookEmailToolTests
         {
             new Message
             {
-                Subject = "Sales Discussion: Sample Corporation",
+                Subject = "Deal: Sample Corporation",
                 From = new Recipient
                 {
                     EmailAddress = new EmailAddress
@@ -131,7 +132,7 @@ public class OutlookEmailToolTests
                     }
                 },
                 ReceivedDateTime = DateTimeOffset.Now.AddDays(-1),
-                BodyPreview = "Sales details..."
+                BodyPreview = "Deal details..."
             }
         };
         
@@ -175,6 +176,38 @@ public class OutlookEmailToolTests
             () => _sut.SearchEmailsAsync(emptyQuery)
         );
     }
+    
+    [Fact]
+    public async Task SearchEmailsAsync_GraphApiError_LogsAndThrows()
+    {
+        // Arrange
+        var query = "test query";
+        _mockGraphClient
+            .Setup(g => g.Me.Messages.Request()
+                .Filter(It.IsAny<string>())
+                .Top(It.IsAny<int>())
+                .OrderBy(It.IsAny<string>())
+                .GetAsync())
+            .ThrowsAsync(new ServiceException(
+                new Error { Code = "ErrorAccessDenied" }
+            ));
+        
+        // Act & Assert
+        await Assert.ThrowsAsync<ServiceException>(
+            () => _sut.SearchEmailsAsync(query)
+        );
+        
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => true),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()
+            ),
+            Times.Once
+        );
+    }
 }
 ```
 
@@ -194,11 +227,17 @@ public class AzureOpenAIProviderTests
     private readonly Mock<IChatClient> _mockChatClient;
     private readonly AzureOpenAIProvider _sut;
     
+    public AzureOpenAIProviderTests()
+    {
+        _mockChatClient = new Mock<IChatClient>();
+        _sut = new AzureOpenAIProvider(_mockChatClient.Object);
+    }
+    
     [Fact]
     public async Task GenerateResponseAsync_ValidPrompt_ReturnsResponse()
     {
         // Arrange
-        var prompt = "Show this week's sales summary";
+        var prompt = "Tell me this week's sales summary";
         var expectedResponse = "This week's sales summary:\n1. ...";
         
         var mockResponse = new ChatCompletion(new[]
@@ -223,6 +262,90 @@ public class AzureOpenAIProviderTests
         
         // Assert
         result.Should().Be(expectedResponse);
+        
+        _mockChatClient.Verify(
+            c => c.CompleteAsync(
+                It.Is<IList<ChatMessage>>(
+                    m => m.Any(msg => msg.Text == prompt)
+                ),
+                It.IsAny<ChatOptions>(),
+                It.IsAny<CancellationToken>()
+            ),
+            Times.Once
+        );
+    }
+    
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    public async Task GenerateResponseAsync_EmptyPrompt_ThrowsException(string? prompt)
+    {
+        // Arrange & Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => _sut.GenerateResponseAsync(
+                prompt!,
+                new List<Message>(),
+                CancellationToken.None
+            )
+        );
+    }
+}
+```
+
+### Adaptive Card Tests
+
+#### AdaptiveCardHelperTests.cs
+
+```csharp
+using Xunit;
+using FluentAssertions;
+using SalesSupportAgent.Bot;
+using AdaptiveCards;
+
+public class AdaptiveCardHelperTests
+{
+    [Fact]
+    public void CreateSalesSummaryCard_ValidData_ReturnsCard()
+    {
+        // Arrange
+        var summaryText = "This week's sales summary";
+        var emails = new List<EmailSummary>
+        {
+            new EmailSummary
+            {
+                Subject = "Deal email",
+                From = "customer@example.com",
+                ReceivedDateTime = DateTime.Now
+            }
+        };
+        var events = new List<EventSummary>();
+        var llmProvider = "AzureOpenAI";
+        
+        // Act
+        var attachment = AdaptiveCardHelper.CreateSalesSummaryCard(
+            summaryText,
+            emails,
+            events,
+            llmProvider
+        );
+        
+        // Assert
+        attachment.Should().NotBeNull();
+        attachment.ContentType.Should().Be(AdaptiveCard.ContentType);
+        
+        var card = attachment.Content as AdaptiveCard;
+        card.Should().NotBeNull();
+        card!.Body.Should().NotBeEmpty();
+        
+        // Verify summary text is included
+        var textBlocks = card.Body
+            .OfType<AdaptiveContainer>()
+            .SelectMany(c => c.Items)
+            .OfType<AdaptiveTextBlock>();
+        
+        textBlocks.Should().Contain(
+            t => t.Text.Contains(summaryText)
+        );
     }
 }
 ```
@@ -231,11 +354,12 @@ public class AzureOpenAIProviderTests
 
 ## 🔗 Integration Tests
 
-### Graph API Integration Test
+### Graph API Integration Tests
 
 ```csharp
 using Xunit;
 using Microsoft.Graph;
+using Microsoft.Extensions.Configuration;
 using SalesSupportAgent.Services.MCP.McpTools;
 
 [Collection("Graph Integration")]
@@ -274,56 +398,163 @@ public class GraphIntegrationTests : IAsyncLifetime
     public async Task SearchEmails_RealGraphAPI_ReturnsData()
     {
         // Arrange
-        var query = "test";
+        var query = "test"; // Search for actually existing emails
         
         // Act
         var result = await _emailTool!.SearchEmailsAsync(query, maxResults: 5);
         
         // Assert
         result.Should().NotBeNullOrEmpty();
+        // Verify actual email data is returned
     }
     
     public Task DisposeAsync() => Task.CompletedTask;
 }
 ```
 
----
-
-## 🎭 E2E Tests
-
-### Teams Bot E2E Test
+### Bot Integration Tests
 
 ```csharp
-using Microsoft.Playwright;
 using Xunit;
+using Microsoft.Bot.Builder;
+using Microsoft.Bot.Builder.Testing;
+using Microsoft.Bot.Schema;
+using SalesSupportAgent.Bot;
+
+public class BotIntegrationTests
+{
+    [Fact]
+    public async Task OnMessageActivity_HelloMessage_ReturnsWelcome()
+    {
+        // Arrange
+        var bot = new TeamsBot(
+            Mock.Of<SalesAgent>(),
+            Mock.Of<ILogger<TeamsBot>>()
+        );
+        
+        var adapter = new TestAdapter();
+        
+        // Act
+        await new TestFlow(adapter, bot.OnTurnAsync)
+            .Send("Hello")
+            .AssertReply(activity =>
+            {
+                var message = activity.AsMessageActivity();
+                message.Text.Should().Contain("Sales Support Agent");
+            })
+            .StartTestAsync();
+    }
+    
+    [Fact]
+    public async Task OnMessageActivity_SummaryRequest_InvokesAgent()
+    {
+        // Arrange
+        var mockAgent = new Mock<SalesAgent>();
+        mockAgent
+            .Setup(a => a.ProcessQueryAsync(It.IsAny<string>()))
+            .ReturnsAsync("Sales summary result");
+        
+        var bot = new TeamsBot(
+            mockAgent.Object,
+            Mock.Of<ILogger<TeamsBot>>()
+        );
+        
+        var adapter = new TestAdapter();
+        
+        // Act
+        await new TestFlow(adapter, bot.OnTurnAsync)
+            .Send("Tell me this week's sales summary")
+            .AssertReply(activity =>
+            {
+                // Verify Adaptive Card is returned
+                activity.Attachments.Should().NotBeEmpty();
+                activity.Attachments[0].ContentType.Should().Be("application/vnd.microsoft.card.adaptive");
+            })
+            .StartTestAsync();
+        
+        // Assert
+        mockAgent.Verify(
+            a => a.ProcessQueryAsync(It.Is<string>(q => q.Contains("sales summary"))),
+            Times.Once
+        );
+    }
+}
+```
+
+---
+
+## 🌐 E2E Tests
+
+### Playwright Tests
+
+```bash
+# Install Playwright
+dotnet add package Microsoft.Playwright
+dotnet build
+pwsh bin/Debug/net10.0/playwright.ps1 install
+```
+
+#### TeamsE2ETests.cs
+
+```csharp
+using Xunit;
+using Microsoft.Playwright;
 
 public class TeamsE2ETests : IAsyncLifetime
 {
     private IPlaywright? _playwright;
     private IBrowser? _browser;
+    private IPage? _page;
     
     public async Task InitializeAsync()
     {
         _playwright = await Playwright.CreateAsync();
         _browser = await _playwright.Chromium.LaunchAsync(new()
         {
-            Headless = false
+            Headless = false, // Set to false for debugging
+            SlowMo = 100
         });
+        
+        _page = await _browser.NewPageAsync();
     }
     
     [Fact]
     [Trait("Category", "E2E")]
-    public async Task SendMessage_ToBot_ReceivesResponse()
+    public async Task Teams_SendMessageToBot_ReceivesResponse()
     {
-        // This would require Teams authentication and setup
-        // Example placeholder
-        var page = await _browser!.NewPageAsync();
-        // ... Teams automation
+        // Arrange
+        await _page!.GotoAsync("https://teams.microsoft.com");
+        
+        // Teams login (credentials from environment variables)
+        await _page.FillAsync("#i0116", Environment.GetEnvironmentVariable("TEST_USER_EMAIL")!);
+        await _page.ClickAsync("#idSIButton9");
+        await _page.FillAsync("#i0118", Environment.GetEnvironmentVariable("TEST_USER_PASSWORD")!);
+        await _page.ClickAsync("#idSIButton9");
+        
+        // Search for Bot
+        await _page.ClickAsync("[aria-label='Search']");
+        await _page.FillAsync("input[type='search']", "Sales Support Agent");
+        await _page.ClickAsync("text=Sales Support Agent");
+        
+        // Send message
+        await _page.FillAsync("[contenteditable='true']", "Hello");
+        await _page.PressAsync("[contenteditable='true']", "Enter");
+        
+        // Wait for response (max 30 seconds)
+        await _page.WaitForSelectorAsync(
+            "text=Sales Support Agent",
+            new() { Timeout = 30000 }
+        );
+        
+        // Assert
+        var responseText = await _page.TextContentAsync(".message-body");
+        responseText.Should().Contain("Sales Support Agent");
     }
     
     public async Task DisposeAsync()
     {
-        await _browser?.CloseAsync();
+        await _page?.CloseAsync()!;
+        await _browser?.CloseAsync()!;
         _playwright?.Dispose();
     }
 }
@@ -331,71 +562,223 @@ public class TeamsE2ETests : IAsyncLifetime
 
 ---
 
-## 🏃 Running Tests
+## 📊 Coverage Measurement
 
-### Run All Tests
+### Running with coverlet
 
 ```bash
-dotnet test
+# Run tests + collect coverage
+dotnet test /p:CollectCoverage=true \
+             /p:CoverletOutputFormat=opencover \
+             /p:Exclude="[xunit.*]*"
+
+# Set coverage threshold
+dotnet test /p:CollectCoverage=true \
+             /p:Threshold=80 \
+             /p:ThresholdType=line
 ```
 
-### Run Specific Category
+### Generate Coverage Report
 
 ```bash
-# Unit tests only
-dotnet test --filter "Category=Unit"
+# Install ReportGenerator
+dotnet tool install -g dotnet-reportgenerator-globaltool
 
-# Integration tests
+# Generate HTML report
+reportgenerator \
+  -reports:"coverage.opencover.xml" \
+  -targetdir:"coveragereport" \
+  -reporttypes:Html
+
+# Open report
+open coveragereport/index.html
+```
+
+---
+
+## 🚀 CI/CD Integration
+
+### GitHub Actions Workflow
+
+```.github/workflows/test.yml
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '10.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore
+    
+    - name: Build
+      run: dotnet build --no-restore
+    
+    - name: Run Unit Tests
+      run: |
+        dotnet test --no-build --verbosity normal \
+          --filter "Category!=Integration&Category!=E2E" \
+          /p:CollectCoverage=true \
+          /p:CoverletOutputFormat=opencover
+    
+    - name: Run Integration Tests
+      run: |
+        dotnet test --no-build --verbosity normal \
+          --filter "Category=Integration"
+      env:
+        M365__TenantId: ${{ secrets.M365_TENANT_ID }}
+        M365__ClientId: ${{ secrets.M365_CLIENT_ID }}
+        M365__ClientSecret: ${{ secrets.M365_CLIENT_SECRET }}
+    
+    - name: Upload Coverage
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage.opencover.xml
+```
+
+---
+
+## 🐛 Debug Tests
+
+### Visual Studio Code
+
+```json
+// .vscode/launch.json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Tests",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "dotnet",
+      "args": [
+        "test",
+        "--filter",
+        "FullyQualifiedName~OutlookEmailToolTests"
+      ],
+      "cwd": "${workspaceFolder}/SalesSupportAgent.Tests",
+      "console": "internalConsole",
+      "stopAtEntry": false
+    }
+  ]
+}
+```
+
+### Selective Test Execution
+
+```bash
+# Run specific test class
+dotnet test --filter "FullyQualifiedName~OutlookEmailToolTests"
+
+# Run specific test method
+dotnet test --filter "FullyQualifiedName~SearchEmailsAsync_ValidQuery"
+
+# By category
 dotnet test --filter "Category=Integration"
 
-# E2E tests
-dotnet test --filter "Category=E2E"
-```
-
-### With Code Coverage
-
-```bash
-dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+# Disable parallel execution (for debugging)
+dotnet test --no-parallel
 ```
 
 ---
 
 ## 📚 Best Practices
 
-### 1. Test Naming Convention
+### 1. AAA Pattern
 
-```
-[MethodName]_[Scenario]_[ExpectedBehavior]
-```
-
-Example:
 ```csharp
-SearchEmailsAsync_ValidQuery_ReturnsEmails()
-SearchEmailsAsync_EmptyQuery_ThrowsException()
+[Fact]
+public async Task MethodName_Condition_ExpectedBehavior()
+{
+    // Arrange
+    var input = "test";
+    var expected = "result";
+    
+    // Act
+    var actual = await _sut.MethodAsync(input);
+    
+    // Assert
+    actual.Should().Be(expected);
+}
 ```
 
-### 2. AAA Pattern
+### 2. Theory-based Tests
 
-- **Arrange**: Setup test data
-- **Act**: Execute method
-- **Assert**: Verify results
+```csharp
+[Theory]
+[InlineData("test", 10)]
+[InlineData("example", 20)]
+[InlineData("sample", 5)]
+public async Task SearchAsync_VariousQueries_ReturnsResults(
+    string query,
+    int expectedCount)
+{
+    var result = await _sut.SearchAsync(query);
+    result.Count.Should().Be(expectedCount);
+}
+```
 
-### 3. Mock External Dependencies
+### 3. Using Fixtures
 
-Always mock:
-- Graph API calls
-- LLM API calls
-- Database operations
-- File system access
+```csharp
+public class GraphClientFixture : IDisposable
+{
+    public GraphServiceClient GraphClient { get; }
+    
+    public GraphClientFixture()
+    {
+        // Setup processing
+        GraphClient = CreateGraphClient();
+    }
+    
+    public void Dispose()
+    {
+        // Cleanup processing
+    }
+}
+
+[Collection("Graph Collection")]
+public class MyTests : IClassFixture<GraphClientFixture>
+{
+    private readonly GraphClientFixture _fixture;
+    
+    public MyTests(GraphClientFixture fixture)
+    {
+        _fixture = fixture;
+    }
+    
+    [Fact]
+    public async Task Test()
+    {
+        // Use _fixture.GraphClient
+    }
+}
+```
 
 ---
 
-## 📚 Related Documentation
+## 🔗 Related Resources
 
-- [Architecture](ARCHITECTURE.md) - System design
-- [Troubleshooting](TROUBLESHOOTING.md) - Common issues
-- [Agent Development](AGENT-DEVELOPMENT.md) - Implementation patterns
+- [Agent Development Guide](AGENT-DEVELOPMENT.md) - Agent implementation
+- [Troubleshooting](TROUBLESHOOTING.md) - Problem resolution
+- [xUnit Documentation](https://xunit.net/)
+- [Moq Quick Reference](https://github.com/moq/moq4/wiki/Quickstart)
+- [FluentAssertions](https://fluentassertions.com/)
 
 ---
 
-**Ensure quality with comprehensive testing!** ✅
+**Ensure the quality of the Sales Support Agent with comprehensive testing!** ✅

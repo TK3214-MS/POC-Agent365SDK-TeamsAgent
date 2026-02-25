@@ -1,22 +1,22 @@
-# 🔔 Notifications & 💬 Transcript Features Guide
+# 🔔 Notifications & 💬 Transcript Feature Guide
 
 [![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../NOTIFICATIONS-TRANSCRIPT-GUIDE.md)
 [![English](https://img.shields.io/badge/lang-English-blue.svg)](NOTIFICATIONS-TRANSCRIPT-GUIDE.md)
 
 ## 📋 Overview
 
-Extended demo integrating Agent 365 SDK's **Notifications** and **Transcript & Storage** features.
+An extended demo integrating the **Notifications** and **Transcript & Storage** features of the Agent 365 SDK.
 
 ### New Features
 
 1. **🔔 Real-time Notifications**
    - Real-time delivery of agent processing progress
-   - Visualize progress stages: 0%, 25%, 75%, 100%
-   - Automatic sending of success/error/warning notifications
+   - Visualization of progress stages at 0%, 25%, 75%, 100%
+   - Automatic sending of success, error, and warning notifications
 
 2. **💬 Conversation History (Transcript & Storage)**
    - Automatic recording of all user and Bot messages
-   - History management and search by conversation
+   - Conversation history management and search per conversation
    - Statistics (total conversations, total messages, active conversations)
 
 ---
@@ -26,7 +26,7 @@ Extended demo integrating Agent 365 SDK's **Notifications** and **Transcript & S
 ### 1. Start Application
 
 ```bash
-cd /Users/tk3214/GitHub/POC-Agent365SDK-TeamsAgent/SalesSupportAgent
+cd /path/to/SalesSupportAgent
 dotnet run
 ```
 
@@ -37,7 +37,7 @@ http://localhost:5192/observability.html
 ```
 
 **New Panels:**
-- 🔔 **Real-time Notifications** - Notifications with progress bars
+- 🔔 **Real-time Notifications** - Notifications with progress bar
 - 💬 **Conversation History** - Conversation list and message details
 
 ---
@@ -46,7 +46,7 @@ http://localhost:5192/observability.html
 
 ### Scenario 1: Real-time Notification Experience
 
-**Purpose**: Experience instant notification delivery via SignalR
+**Objective**: Experience instant notification delivery via SignalR
 
 **Steps**:
 
@@ -54,48 +54,48 @@ http://localhost:5192/observability.html
    - Open `http://localhost:5192/observability.html`
    - Verify notification panel shows "Waiting for notification data..."
 
-2. **Operate Bot**
+2. **Bot Operation**
    - Open Web Chat (`http://localhost:5192`)
-   - Enter "Show this week's sales status"
+   - Type "Tell me about this week's sales status"
 
 3. **Verify Notifications**
-   - Verify in Dashboard "🔔 Real-time Notifications" panel real-time:
+   - Check the "🔔 Real-time Notifications" panel on Dashboard in real-time:
      ```
-     🚀 Starting sales summary generation...        [0%]
+     🚀 Starting sales summary generation...          [0%]
      📊 Collecting data (emails, calendar, documents)... [25%]
-     🤖 AI analyzing (summary generation processing)...  [75%]
+     🤖 AI analysis in progress (summary generation)... [75%]
      ✅ Sales summary generation complete! (Processing time: 6500ms) [100%]
      ```
 
 4. **Progress Bar**
    - Blue progress bar displayed for each notification
-   - Verify 0% → 25% → 75% → 100% animation
+   - Verify animation from 0% → 25% → 75% → 100%
 
 **Focal Points**:
-- ✨ **Zero Delay**: Dashboard receives instant notifications even while Bot processes
-- ✨ **Staged Progress**: Users understand agent processing status
+- ✨ **Zero Latency**: Instant notification on Dashboard even while Bot is processing
+- ✨ **Staged Progress**: Users can track agent processing status
 - ✨ **Color-coded Status**: success (green), error (red), warning (yellow)
 
 ---
 
 ### Scenario 2: Conversation History Management
 
-**Purpose**: Experience conversation recording and history search features
+**Objective**: Experience conversation recording and history search
 
 **Steps**:
 
 1. **Execute Conversations**
    - Send 3 messages in Web Chat:
-     - "Show this week's sales status"
-     - "What's my next appointment?"
+     - "Tell me about this week's sales status"
+     - "What's the next appointment?"
      - "What's the latest email?"
 
 2. **Verify Conversation List**
-   - Check Dashboard "💬 Conversation History" panel
-   - Display conversation ID, message count, last activity time
+   - Check the "💬 Conversation History" panel on Dashboard
+   - Conversation ID, message count, and last activity time are displayed
 
-3. **Display Conversation Details**
-   - Click conversation
+3. **View Conversation Details**
+   - Click on a conversation
    - User messages (blue background) and Bot responses (purple background) displayed chronologically
 
 4. **Verify Statistics API**
@@ -114,15 +114,15 @@ http://localhost:5192/observability.html
    ```
 
 **Focal Points**:
-- ✨ **Complete Recording**: Save all user-Bot interactions
+- ✨ **Complete Recording**: All user-Bot interactions are saved
 - ✨ **Searchable**: Instantly search past history by conversation ID
-- ✨ **Privacy Support**: Conversation deletion API (GDPR compliant)
+- ✨ **Privacy Compliant**: Conversation deletion API (GDPR compliant)
 
 ---
 
 ### Scenario 3: Error Notifications
 
-**Purpose**: Automatic notification and alert features during errors
+**Objective**: Automatic notification and alert functionality during errors
 
 **Steps**:
 
@@ -133,7 +133,7 @@ http://localhost:5192/observability.html
      ```
 
 2. **Error Request**
-   - In Web Chat, enter "Show this week's sales status"
+   - Type "Tell me about this week's sales status" in Web Chat
 
 3. **Verify Error Notification**
    - Red error notification in Dashboard "🔔 Real-time Notifications" panel:
@@ -147,12 +147,12 @@ http://localhost:5192/observability.html
      ```bash
      ollama serve
      ```
-   - Verify success notification with normal request
+   - Execute normal request and verify success notification
 
 **Focal Points**:
-- ✨ **Instant Error Notification**: Red alert when issues occur
+- ✨ **Instant Error Notification**: Red alert when problems occur
 - ✨ **Detailed Error Information**: Display error message and details
-- ✨ **Automatic Recovery Tracking**: Verify status with success notification after recovery
+- ✨ **Automatic Recovery Tracking**: Confirm state with success notification after recovery
 
 ---
 
@@ -223,7 +223,7 @@ GET /api/transcript/history/{conversationId}?limit=50
     "conversationId": "conv-123-456",
     "type": "message",
     "from": "User",
-    "text": "Show this week's sales status",
+    "text": "Tell me about this week's sales status",
     "timestamp": "2026-02-07T10:30:00Z",
     "channelId": "webchat"
   },
@@ -272,7 +272,7 @@ DELETE /api/transcript/history/{conversationId}
 - `SendSuccessNotificationAsync()` - Success notification
 - `SendErrorNotificationAsync()` - Error notification
 - `SendWarningNotificationAsync()` - Warning notification
-- `GetNotificationHistory()` - Get notification history (retain latest 50)
+- `GetNotificationHistory()` - Get notification history (retains last 50)
 
 **SignalR Integration**:
 ```csharp
@@ -288,28 +288,126 @@ await _hubContext.Clients.All.SendAsync("NotificationUpdate", notification);
 **Key Methods**:
 - `LogActivityAsync()` - Record conversation activity
 - `GetConversationHistoryAsync()` - Get conversation history
-- `GetAllConversations()` - Get all conversations list
-- `GetStatistics()` - Get statistics
+- `GetAllConversations()` - All conversation list
+- `GetStatistics()` - Statistics
 - `DeleteConversationHistoryAsync()` - Delete conversation (GDPR compliant)
 
 **Storage Integration**:
 ```csharp
-// Use Microsoft.Agents.Storage.IStorage
+// Uses Microsoft.Agents.Storage.IStorage
 var storageKey = $"transcript:{conversationId}:{entry.Id}";
 await _storage.WriteAsync(storeItems);
 ```
 
 **Cache Strategy**:
 - Memory cache with ConcurrentDictionary<string, List<TranscriptEntry>>
-- Retain maximum 100 conversations in cache
+- Cache retains up to 100 conversations
+- Asynchronous write to storage
 
 ---
 
-## 📚 Related Documentation
+### SalesAgent Integration
 
-- [Observability Dashboard](OBSERVABILITY-DASHBOARD.md) - Dashboard features
-- [Agent Development](AGENT-DEVELOPMENT.md) - Custom implementation
+**Changes**:
+
+```csharp
+// Add NotificationService to constructor
+public SalesAgent(
+    ...,
+    NotificationService notificationService,
+    ...)
+
+// Send notifications within GenerateSalesSummaryAsync
+await _notificationService.SendProgressNotificationAsync(operationId, "🚀 Starting sales summary generation...", 0);
+await _notificationService.SendProgressNotificationAsync(operationId, "📊 Collecting data...", 25);
+await _notificationService.SendProgressNotificationAsync(operationId, "🤖 AI analysis in progress...", 75);
+await _notificationService.SendSuccessNotificationAsync(operationId, "✅ Complete!", data);
+```
 
 ---
 
-**Experience advanced features of Agent 365 SDK!** 🚀
+### TeamsBot Integration
+
+**Changes**:
+
+```csharp
+// Add TranscriptService to constructor
+public TeamsBot(
+    SalesAgent salesAgent,
+    TranscriptService transcriptService,
+    ...)
+
+// Record on message send/receive
+await _transcriptService.LogActivityAsync(turnContext.Activity, conversationId);
+await _transcriptService.LogActivityAsync(botActivity, conversationId);
+```
+
+---
+
+## 💡 Best Practices
+
+### 1. Appropriate Use of Notifications
+
+**Recommended**:
+- Send progress notifications for long-running processes (5+ seconds)
+- Use 4-5 progress steps (0%, 33%, 66%, 100%, etc.)
+- Include specific result information on success
+
+**Not Recommended**:
+- Excessive notifications for short processes (under 1 second)
+- Meaningless progress updates (1% increments, etc.)
+
+### 2. Conversation History Privacy
+
+**GDPR Compliance**:
+```csharp
+// Delete conversation on user request
+await transcriptService.DeleteConversationHistoryAsync(conversationId);
+```
+
+**Recommended Settings**:
+- Use encrypted storage in production
+- PII (Personally Identifiable Information) filtering when personal data is involved
+- Set retention period policy (e.g., auto-delete after 30 days)
+
+### 3. Performance Optimization
+
+**Cache Strategy**:
+- Memory: Cache latest 100 conversations with ConcurrentDictionary
+- Storage: Avoid bottlenecks with asynchronous writes
+
+**SignalR Optimization**:
+- Notification frequency limiting (max 10 notifications per second)
+- Client-side batch processing
+
+---
+
+## 🎯 Next Steps
+
+### Phase 1 Complete ✅
+- ✅ Observability (traces, metrics)
+- ✅ Notifications (progress notifications)
+- ✅ Transcript & Storage (conversation history)
+
+### Phase 2 (Optional Extensions)
+
+1. **Application Insights Integration** - Enterprise monitoring
+2. **Blob Storage Integration** - Persistent storage
+3. **PII Filtering** - Automatic personal data masking
+4. **Custom Metrics** - Business KPI additions
+5. **Alert Rules** - Threshold-based automatic alerts
+
+---
+
+## 📚 References
+
+- [Microsoft Agent 365 SDK - Notifications](https://github.com/microsoft/agent-framework/tree/main/src/packages/Notifications)
+- [Microsoft Agent 365 SDK - Storage](https://github.com/microsoft/agent-framework/tree/main/src/packages/Storage)
+- [Bot Framework Storage](https://learn.microsoft.com/azure/bot-service/bot-builder-concept-state)
+- [SignalR Documentation](https://learn.microsoft.com/aspnet/core/signalr/introduction)
+
+---
+
+**Created**: February 7, 2026  
+**Version**: 2.0  
+**Target**: Agent 365 SDK Notifications & Transcript Platform Demo

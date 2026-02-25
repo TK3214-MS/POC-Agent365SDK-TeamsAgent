@@ -5,52 +5,52 @@
 
 ## 📋 Overview
 
-This guide explains procedures for generating test data in your Microsoft 365 tenant using **API endpoints implemented in this project** to effectively demonstrate the Sales Support Agent.
+This guide explains how to generate test data in your Microsoft 365 tenant using **the API endpoints implemented in this project** for effective Sales Support Agent demos.
 
 ### ✨ Features
 
-- ✅ **Easy**: Auto-generate emails and events with one API call
-- ✅ **Realistic Data**: Create sales data with Japanese company names, contacts, and product names
-- ✅ **Customizable**: Adjust generation count and period
-- ✅ **Delegated Permissions**: Register as user with Device Code Flow authentication
+- ✅ **Simple**: Auto-generate emails and events with a single API call
+- ✅ **Realistic data**: Creates deal data with Japanese company names, contacts, and products
+- ✅ **Customizable**: Adjust generation count and time period
+- ✅ **Delegated permissions**: Registers as user via Device Code Flow authentication
 
 ---
 
 ## 🎯 Generated Data
 
-| Data Type | Content | Count (Default) |
-|-----------|---------|----------------|
-| 📧 **Sales Emails** | Quote requests, proposal confirmations, contract-related emails | 50 |
-| 📅 **Sales Events** | Customer visits, online meetings, internal meetings | 30 |
+| Data Type | Contents | Count (Default) |
+|-----------|----------|----------------|
+| 📧 **Deal Emails** | Quote requests, proposal confirmations, contract-related emails | 50 |
+| 📅 **Deal Events** | Customer visits, online meetings, internal meetings | 30 |
 
-### Sample Data Content
+### Sample Data Contents
 
-#### Sales Email Example
+#### Deal Email Example
 
 ```
-Subject: Re: [Quote Sent] Cloud Infrastructure Service for Sample Tech Inc.
+Subject: Re: 【見積書送付】株式会社サンプルテック 様向け クラウド基盤サービス
 From: noreply@example.com
-Category: Sales, Business
+Category: Deal, Sales
 
 Body:
-Dear Mr. Tanaka of Sample Tech Inc.,
+株式会社サンプルテック 田中太郎様
 
-Thank you for your continued support.
+いつもお世話になっております。
 
-Please find attached the quote for "Cloud Infrastructure Service" as requested.
+先日ご依頼頂きました「クラウド基盤サービス」の見積書を送付いたします。
 
-Deal Amount: ¥3,500,000
-Proposed Product: Cloud Infrastructure Service
+Deal amount: ¥3,500,000
+Proposed product: Cloud Infrastructure Service
 ...
 ```
 
-#### Sales Event Example
+#### Deal Event Example
 
 ```
-Subject: [Sales Meeting] Digital Innovation Inc. - AI Solution Discussion
-Date: 2026-02-15 14:00-15:00
-Location: Online (Teams Meeting)
-Description: AI Solution proposal and quote explanation
+Subject: 【商談】株式会社デジタルイノベーション - AIソリューション 打ち合わせ
+Date/Time: 2026-02-15  14:00-15:00
+Location: Online (Teams meeting)
+Description: AI Solution proposal & quote explanation
 ```
 
 ---
@@ -61,14 +61,14 @@ Description: AI Solution proposal and quote explanation
 
 | Item | Description |
 |------|-------------|
-| ✅ **Application Running** | Start Sales Support Agent with `dotnet run` |
-| ✅ **Microsoft 365 Account** | Account in tenant where data will be created |
-| ✅ **Graph API Permissions** | `Mail.ReadWrite`, `Calendars.ReadWrite`, `User.Read` |
+| ✅ **Application running** | Start the Sales Support Agent with `dotnet run` |
+| ✅ **Microsoft 365 account** | Account for the tenant where data will be created |
+| ✅ **Graph API permissions** | `Mail.ReadWrite`, `Calendars.ReadWrite`, `User.Read` |
 
 ### Verification
 
 ```bash
-# Verify application is running
+# Verify the application is running
 curl https://localhost:5192/health
 
 # Expected response:
@@ -77,13 +77,13 @@ curl https://localhost:5192/health
 
 ---
 
-## 🚀 Test Data Generation Procedure
+## 🚀 Test Data Generation Steps
 
 The Sales Support Agent provides three API endpoints:
 
 ### 1️⃣ **Generate All Data at Once (Recommended)**
 
-Generate emails and events simultaneously.
+Generates emails and events simultaneously.
 
 ```bash
 curl -X POST https://localhost:5192/api/testdata/generate \
@@ -94,25 +94,25 @@ curl -X POST https://localhost:5192/api/testdata/generate \
   }'
 ```
 
-**Authentication Flow on First Execution**:
+**Authentication flow on first run**:
 
 ```
-1. API call initiates Device Code Flow
-2. Following message appears in console:
+1. Calling the API initiates the Device Code Flow
+2. A message like the following appears in the console:
 
    📱 Device Code Flow authentication required
-   Access the following URL in browser:
+   Please visit the following URL in your browser:
    https://microsoft.com/devicelogin
 
    Code: ABCD-EFGH
 
-3. Open URL in browser and enter code
-4. Sign in with Microsoft 365 account
-5. Click "Accept" on permission consent screen
-6. Data generation starts automatically after authentication completes
+3. Open the URL in your browser and enter the code
+4. Sign in with your Microsoft 365 account
+5. Click "Accept" on the permissions consent screen
+6. After authentication completes, data generation begins automatically
 ```
 
-**Success Response**:
+**Success response**:
 
 ```json
 {
@@ -131,18 +131,18 @@ curl -X POST https://localhost:5192/api/testdata/generate \
 
 ### 2️⃣ **Generate Emails Only**
 
-Generate sales emails only.
+Generates deal emails only.
 
 ```bash
 curl -X POST https://localhost:5192/api/testdata/generate/emails?count=100
 ```
 
-**Response Example**:
+**Response example**:
 
 ```json
 {
   "Success": true,
-  "Message": "Generated 100 sales emails",
+  "Message": "Generated 100 deal emails",
   "Created": 100
 }
 ```
@@ -151,18 +151,18 @@ curl -X POST https://localhost:5192/api/testdata/generate/emails?count=100
 
 ### 3️⃣ **Generate Events Only**
 
-Generate sales events only.
+Generates deal events only.
 
 ```bash
 curl -X POST https://localhost:5192/api/testdata/generate/events?count=50
 ```
 
-**Response Example**:
+**Response example**:
 
 ```json
 {
   "Success": true,
-  "Message": "Generated 50 sales events",
+  "Message": "Generated 50 deal events",
   "Created": 50
 }
 ```
@@ -171,51 +171,51 @@ curl -X POST https://localhost:5192/api/testdata/generate/events?count=50
 
 ## 🎨 Customization
 
-### Adjust Generation Count
+### Adjusting Generation Count
 
-Modify count via query parameters:
+You can change the generation count via query parameters:
 
 ```bash
 # Generate 200 emails and 100 events
 curl -X POST "https://localhost:5192/api/testdata/generate?emailCount=200&eventCount=100"
 ```
 
-### Adjust Generation Period
+### Adjusting Generation Period
 
-Current code generates data for the following period:
+The current code generates data within the following period:
 
-- **Start Date**: 2 months ago (past sales)
-- **End Date**: 1 year ahead (future events)
+- **Start date**: 2 months ago (past deals)
+- **End date**: 1 year ahead (future events)
 
-**How to Customize**:
+**Customization method**:
 
-Edit [Services/TestData/TestDataGenerator.cs](../SalesSupportAgent/Services/TestData/TestDataGenerator.cs):
+Edit the following in [Services/TestData/TestDataGenerator.cs](../SalesSupportAgent/Services/TestData/TestDataGenerator.cs):
 
 ```csharp
 // Default
 var startDate = DateTime.Now.AddMonths(-2);
 var endDate = DateTime.Now.AddYears(1);
 
-// Example: Change to past 6 months to next 6 months
+// Example: Change to 6 months ago through 6 months ahead
 var startDate = DateTime.Now.AddMonths(-6);
 var endDate = DateTime.Now.AddMonths(6);
 ```
 
 ---
 
-## 📊 Verify Generated Data
+## 📊 Verifying Generated Data
 
 ### Check in Outlook
 
-1. Access [Outlook Web App](https://outlook.office.com)
-2. Open "Drafts" folder
-3. Filter by "Sales" category
+1. Go to [Outlook Web App](https://outlook.office.com)
+2. Open the "Drafts" folder
+3. Filter by category "商談" (Deal)
 
 ### Check in Calendar
 
-1. Access [Outlook Calendar](https://outlook.office.com/calendar)
-2. Search "Sales"
-3. View event list
+1. Go to [Outlook Calendar](https://outlook.office.com/calendar)
+2. Search for "商談" (Deal)
+3. Review the event list
 
 ---
 
@@ -223,15 +223,15 @@ var endDate = DateTime.Now.AddMonths(6);
 
 Recommended datasets for effective demos:
 
-### Scenario 1: Basic Demo (30 min)
+### Scenario 1: Basic Demo (30 minutes)
 
 ```bash
 # Basic dataset
 curl -X POST "https://localhost:5192/api/testdata/generate?emailCount=30&eventCount=20"
 ```
 
-- Emails: 30 (minimum)
-- Events: 20 (few per week)
+- Emails: 30 (minimal)
+- Events: 20 (a few per week)
 
 ### Scenario 2: Detailed Demo (1 hour)
 
@@ -240,17 +240,17 @@ curl -X POST "https://localhost:5192/api/testdata/generate?emailCount=30&eventCo
 curl -X POST "https://localhost:5192/api/testdata/generate?emailCount=100&eventCount=60"
 ```
 
-- Emails: 100 (multiple customer history)
-- Events: 60 (past, present, future schedule)
+- Emails: 100 (history with multiple customers)
+- Events: 60 (past, present, and future schedules)
 
 ### Scenario 3: Full Demo (Workshop)
 
 ```bash
-# Large dataset
+# Large-scale dataset
 curl -X POST "https://localhost:5192/api/testdata/generate?emailCount=200&eventCount=100"
 ```
 
-- Emails: 200 (diverse sales patterns)
+- Emails: 200 (diverse deal patterns)
 - Events: 100 (long-term schedule)
 
 ---
@@ -259,36 +259,36 @@ curl -X POST "https://localhost:5192/api/testdata/generate?emailCount=200&eventC
 
 ### ⚠️ Important Notes
 
-1. **Mailbox Capacity**: Large data generation consumes mailbox capacity
-2. **Test Tenant Recommended**: Use in developer tenant, not production
-3. **Generation Time**: 100 data items take 2-5 minutes
-4. **Duplicate Execution**: Running same API multiple times duplicates data
+1. **Mailbox capacity**: Large data generation consumes mailbox capacity
+2. **Test tenant recommended**: Use a developer tenant, not a production environment
+3. **Generation time**: Generating 100 items takes approximately 2-5 minutes
+4. **Duplicate runs**: Running the same API multiple times creates duplicate data
 
 ### ✅ Best Practices
 
-#### 1. Use Test Tenant
+#### 1. Use a Test Tenant
 
 ```
-Microsoft 365 Developer Program: Get free test tenant
+Microsoft 365 Developer Program: Get a free test tenant
 https://developer.microsoft.com/microsoft-365/dev-program
 ```
 
-#### 2. Clean Up Data
+#### 2. Data Cleanup
 
-Delete unnecessary test data after demo:
+Delete unnecessary test data after demos:
 
-- Bulk delete "Category: Sales" in Outlook
-- Bulk delete "Sales" events in Calendar
+- Bulk delete emails with category "商談" (Deal) in Outlook
+- Bulk delete "商談" (Deal) events in Calendar
 
 #### 3. Incremental Data Generation
 
-Test with small amount first:
+Start with a small amount for testing:
 
 ```bash
 # First test with 10 items
 curl -X POST "https://localhost:5192/api/testdata/generate?emailCount=10&eventCount=5"
 
-# If OK, generate production dataset
+# If everything works, generate the main dataset
 curl -X POST "https://localhost:5192/api/testdata/generate?emailCount=50&eventCount=30"
 ```
 
@@ -298,21 +298,21 @@ curl -X POST "https://localhost:5192/api/testdata/generate?emailCount=50&eventCo
 
 ### Error: "Authentication required"
 
-**Cause**: Device Code Flow authentication not yet completed
+**Cause**: Device Code Flow authentication has not been completed
 
 **Solution**:
-1. Access device code URL shown in console
-2. Enter code and sign in
-3. Accept permissions
-4. Run API again
+1. Visit the device code URL displayed in the console
+2. Enter the code and sign in
+3. Accept the permissions
+4. Run the API again
 
-### Error: "Insufficient  permissions"
+### Error: "Insufficient permissions"
 
-**Cause**: Required permissions not granted
+**Cause**: Required permissions have not been granted
 
 **Solution**:
 
-Check `TestData` section in `appsettings.json`:
+Check the `TestData` section in `appsettings.json`:
 
 ```json
 {
@@ -328,43 +328,58 @@ Check `TestData` section in `appsettings.json`:
 
 ### Error: "Cannot access mailbox"
 
-**Cause**: Microsoft 365 license or mailbox not activated
+**Cause**: Microsoft 365 license or mailbox is not enabled
 
 **Solution**:
-1. Check license in Microsoft 365 admin center
-2. Verify Exchange mailbox is created
-3. Log in to Outlook once to activate mailbox
+1. Check the license in Microsoft 365 admin center
+2. Verify that the Exchange mailbox has been created
+3. Log into Outlook once to activate the mailbox
+
+### Data is not being generated
+
+**Diagnostic steps**:
+
+```bash
+# 1. Health check
+curl https://localhost:5192/health
+
+# 2. Check logs
+# Review the application console output
+
+# 3. Test with a small amount
+curl -X POST "https://localhost:5192/api/testdata/generate?emailCount=1&eventCount=1"
+```
 
 ---
 
 ## 🔍 Using Generated Data
 
-### Test with Agent
+### Test with the Agent
 
-Test agent using generated data:
+Test the agent using generated data:
 
 ```
-@SalesSupportAgent Show this week's sales summary
+@Sales Support Agent Tell me this week's deal summary
 ```
 
-**Expected Behavior**:
-1. Extract sales information from generated emails
-2. Get meetings from this week's events
-3. Generate summary with LLM
-4. Reply visually with Adaptive Card
+**Expected behavior**:
+1. Extracts deal information from generated emails
+2. Retrieves this week's meetings from events
+3. Generates summary with LLM
+4. Replies with visual Adaptive Card
 
-### Check in Observability Dashboard
+### Verify on Observability Dashboard
 
 1. Access `https://localhost:5192/observability.html`
 2. Monitor agent execution in real-time
-3. Trace data collection phase in detail
+3. View detailed traces for the data collection phase
 
 ---
 
 ## 📚 Related Documentation
 
 - [Getting Started](GETTING-STARTED.md) - Initial setup
-- [Authentication](AUTHENTICATION.md) - Graph API permissions
+- [Authentication](AUTHENTICATION.md) - Graph API permission settings
 - [Observability Dashboard](OBSERVABILITY-DASHBOARD.md) - Real-time monitoring
 - [Agent Development](AGENT-DEVELOPMENT.md) - MCP Tools implementation
 
@@ -372,11 +387,11 @@ Test agent using generated data:
 
 ## 💡 Next Steps
 
-1. ✅ **Test Data Generation Complete**
-2. ▶️ [Teams Integration](TEAMS-MANIFEST.md) to add Bot to Teams
-3. ▶️ [Observability Dashboard](OBSERVABILITY-DASHBOARD.md) to monitor operations
-4. ▶️ Ask agent questions and check responses
+1. ✅ **Test data generation complete**
+2. ▶️ Add the Bot to Teams via [Teams Integration](TEAMS-MANIFEST.md)
+3. ▶️ Monitor behavior with [Observability Dashboard](OBSERVABILITY-DASHBOARD.md)
+4. ▶️ Ask questions to the agent and verify responses
 
 ---
 
-**Use this project's API to efficiently build your demo environment!** 🚀
+**Build an efficient demo environment using the project's APIs!** 🚀

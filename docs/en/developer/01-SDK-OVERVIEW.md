@@ -9,7 +9,7 @@
 - [Microsoft 365 SDK](#microsoft-365-sdk)
 - [Agent 365 SDK](#agent-365-sdk)
 - [Microsoft.Extensions.AI](#microsoftextensionsai)
-- [SDK Relationships](#sdk-relationships)
+- [Relationship Between SDKs](#relationship-between-sdks)
 - [Overall Architecture](#overall-architecture)
 - [Development Flow](#development-flow)
 
@@ -17,13 +17,13 @@
 
 ## Overview
 
-The Sales Support Agent is built by combining multiple latest Microsoft SDKs. This document explains in detail the role and integration method of each SDK.
+Sales Support Agent is built by combining multiple latest Microsoft SDKs. This document provides a detailed explanation of each SDK's role and integration methods.
 
-### Major SDKs Used
+### Key SDKs Used
 
 | SDK | Version | Role |
 |-----|---------|------|
-| **Microsoft 365 SDK** | 6.x | Microsoft Graph API integration (email, calendar, SharePoint) |
+| **Microsoft 365 SDK** | 6.x | Microsoft Graph API integration (mail, calendar, SharePoint) |
 | **Agent 365 SDK** | 1.x | Microsoft agent framework (observability, notifications) |
 | **Microsoft.Extensions.AI** | 9.x | AI integration abstraction layer (IChatClient) |
 | **Bot Framework** | 4.x | Teams integration, Adaptive Cards |
@@ -35,13 +35,13 @@ The Sales Support Agent is built by combining multiple latest Microsoft SDKs. Th
 
 ### Overview
 
-Microsoft 365 SDK provides integration with Microsoft Graph API.
+Microsoft 365 SDK provides integration with the Microsoft Graph API.
 
 ### Key Components
 
 #### 1. GraphServiceClient
 
-**Role**: Entry point to Graph API
+**Role**: Entry point for Graph API
 
 ```csharp
 // Configuration example in Program.cs
@@ -58,10 +58,10 @@ builder.Services.AddSingleton<GraphServiceClient>(sp =>
 ```
 
 **Key Features**:
-- **Authentication Management**: `TokenCredential`-based authentication
-- **Request Building**: Type-safe query construction via Fluent API
-- **Error Handling**: Detailed error information via `ServiceException`
-- **Batch Processing**: Efficient execution of multiple requests
+- **Authentication management**: `TokenCredential`-based authentication
+- **Request building**: Type-safe query construction via Fluent API
+- **Error handling**: Detailed error information through `ServiceException`
+- **Batch processing**: Efficient execution of multiple requests
 
 #### 2. Graph API Integration Patterns
 
@@ -97,10 +97,10 @@ public async Task<string> SearchEmailsAsync(string query, int maxResults = 10)
 }
 ```
 
-**Points**:
-- Detailed query configuration with `requestConfiguration` lambda
-- Field optimization with `Select` (performance improvement)
-- Appropriate error handling with `ServiceException`
+**Key Points**:
+- Detailed query configuration via `requestConfiguration` lambda
+- Field optimization with `Select` (improves performance)
+- Proper error handling with `ServiceException`
 
 #### 3. SharePoint Search Integration
 
@@ -126,20 +126,20 @@ var response = await _graphClient.Search.Query
 ```
 
 **Features**:
-- **Unified Search**: Cross-search SharePoint, OneDrive, Teams
-- **Entity Types**: ListItem, DriveItem, Message, Event
-- **Ranking**: Automatic sort by relevance score
+- **Unified search**: Cross-search across SharePoint, OneDrive, and Teams
+- **Entity types**: ListItem, DriveItem, Message, Event
+- **Ranking**: Automatic sorting by relevance score
 
 ### Microsoft 365 SDK Best Practices
 
 #### ✅ DO
 
 ```csharp
-// 1. Retrieve only required fields with Select
+// 1. Retrieve only necessary fields with Select
 var messages = await _graphClient.Me.Messages
     .GetAsync(config => config.QueryParameters.Select = new[] { "subject", "from" });
 
-// 2. Optimize multiple requests with batch processing
+// 2. Use batch processing to optimize multiple requests
 var batchRequestContent = new BatchRequestContentCollection(_graphClient);
 var messageRequest = _graphClient.Me.Messages.ToGetRequestInformation();
 var calendarRequest = _graphClient.Me.Calendar.ToGetRequestInformation();
@@ -162,10 +162,10 @@ await retryPolicy.ExecuteAsync(async () =>
 #### ❌ DON'T
 
 ```csharp
-// 1. Retrieve all fields (performance degradation)
+// 1. Retrieving all fields (degrades performance)
 var messages = await _graphClient.Me.Messages.GetAsync(); // No Select
 
-// 2. Individual requests in loop (N+1 problem)
+// 2. Individual requests in a loop (N+1 problem)
 foreach (var userId in userIds)
 {
     var user = await _graphClient.Users[userId].GetAsync(); // BAD
@@ -181,13 +181,13 @@ var messages = await _graphClient.Me.Messages.GetAsync(); // No exception handli
 
 ### Overview
 
-Agent 365 SDK is the official agent framework provided by Microsoft. It provides observability, tool calling, and notification features.
+Agent 365 SDK is an official agent framework provided by Microsoft. It provides observability, tool invocation, and notification capabilities.
 
 ### Key Components
 
 #### 1. Agent 365 Observability
 
-**Role**: Complete observability of agent behavior
+**Role**: Full observability of agent behavior
 
 ```csharp
 // Configuration in Program.cs
@@ -205,10 +205,10 @@ builder.Services.AddAgent365Observability(options =>
 
 | Feature | Description | Use Case |
 |---------|-------------|----------|
-| **ActivitySource** | Distributed tracing | LLM call spans |
+| **ActivitySource** | Distributed tracing | Spans for LLM calls |
 | **Meter** | Metrics collection | Request count, latency |
-| **Span Enrichment** | Add context information | User ID, conversation ID |
-| **Error Tracking** | Automatic exception recording | Stack trace, error code |
+| **Span enrichment** | Adding context information | User ID, conversation ID |
+| **Error tracking** | Automatic exception recording | Stack traces, error codes |
 
 **Implementation Example** (`Telemetry/AgentMetrics.cs`):
 
@@ -253,8 +253,425 @@ public class AgentMetrics
 }
 ```
 
-*(Content continues with Agent 365 Tooling, Notifications, Microsoft.Extensions.AI sections, best practices, and architecture diagrams - total ~1,400 lines)*
+#### 2. Agent 365 Tooling
+
+**Role**: Unified interface for LLM tool invocation
+
+**Tool Definition Example**:
+
+```csharp
+[Agent365Tool("search_emails")]
+[Description("Searches user's emails by keyword")]
+public async Task<string> SearchEmails(
+    [Description("Search keyword")] string query,
+    [Description("Maximum results")] int maxResults = 10)
+{
+    using var activity = _metrics.StartActivity("SearchEmails");
+    activity?.SetTag("query", query);
+    
+    var sw = Stopwatch.StartNew();
+    try
+    {
+        var result = await _emailTool.SearchEmailsAsync(query, maxResults);
+        _metrics.RecordRequest("search_emails", sw.ElapsedMilliseconds, true);
+        return result;
+    }
+    catch (Exception ex)
+    {
+        activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+        _metrics.RecordRequest("search_emails", sw.ElapsedMilliseconds, false);
+        throw;
+    }
+}
+```
+
+**Features**:
+- **Attribute-based definition**: Declarative tool definition with `[Agent365Tool]`
+- **Automatic parameter validation**: Auto-generates JSON schema from `[Description]`
+- **Telemetry integration**: Tool invocations are automatically traced
+
+#### 3. Agent 365 Notifications
+
+**Role**: Real-time notifications, conversation history, and Transcript functionality
+
+**Implementation Example** (`Bot/TeamsBot.cs`):
+
+```csharp
+using Agent365.Notifications;
+
+public class TeamsBot : ActivityHandler
+{
+    private readonly INotificationService _notificationService;
+
+    protected override async Task OnMessageActivityAsync(
+        ITurnContext<IMessageActivity> turnContext,
+        CancellationToken cancellationToken)
+    {
+        // Start transcript recording
+        await _notificationService.StartTranscriptAsync(
+            conversationId: turnContext.Activity.Conversation.Id,
+            userId: turnContext.Activity.From.Id
+        );
+
+        // Record user message
+        await _notificationService.AddTranscriptMessageAsync(
+            role: "user",
+            content: turnContext.Activity.Text
+        );
+
+        // Agent processing...
+        var response = await _salesAgent.ProcessAsync(turnContext.Activity.Text);
+
+        // Record agent response
+        await _notificationService.AddTranscriptMessageAsync(
+            role: "assistant",
+            content: response
+        );
+
+        // Send real-time notification
+        await _notificationService.SendNotificationAsync(
+            new AgentNotification
+            {
+                Type = NotificationType.Message,
+                Content = response,
+                Timestamp = DateTimeOffset.UtcNow
+            }
+        );
+    }
+}
+```
+
+**Provided Features**:
+- **Transcript recording**: Persistence of conversation history
+- **Real-time notifications**: Delivery to dashboard via SignalR
+- **Conversation context**: Tracking multi-turn conversations
+
+### Agent 365 SDK Best Practices
+
+#### ✅ DO
+
+```csharp
+// 1. Add business context to spans
+using var activity = _activitySource.StartActivity("ProcessUserRequest");
+activity?.SetTag("user.id", userId);
+activity?.SetTag("conversation.id", conversationId);
+activity?.SetTag("intent", detectedIntent);
+
+// 2. Track business KPIs with metrics
+_requestCounter.Add(1, 
+    new("operation", "sales_summary"),
+    new("customer_tier", "enterprise")
+);
+
+// 3. Always record metrics even on errors
+catch (Exception ex)
+{
+    activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+    _errorCounter.Add(1, new("error_type", ex.GetType().Name));
+    throw;
+}
+```
+
+#### ❌ DON'T
+
+```csharp
+// 1. Start a span but don't dispose it
+var activity = _activitySource.StartActivity("Operation");
+// No using statement - memory leak
+
+// 2. Excessive metrics collection
+_histogram.Record(value, 
+    new("tag1", val1), new("tag2", val2), /* ... 20 tags ... */
+); // Cardinality explosion
+
+// 3. Logging sensitive information
+activity?.SetTag("password", userPassword); // Security violation
+```
 
 ---
 
-For the complete detailed documentation, please refer to the Japanese version at [../developer/01-SDK-OVERVIEW.md](../../developer/01-SDK-OVERVIEW.md).
+## Microsoft.Extensions.AI
+
+### Overview
+
+Microsoft.Extensions.AI provides a unified AI integration API that is independent of LLM providers.
+
+### Key Components
+
+#### 1. IChatClient Interface
+
+**Role**: Abstraction for LLM invocations
+
+```csharp
+public interface IChatClient
+{
+    Task<ChatCompletion> CompleteAsync(
+        IList<ChatMessage> chatMessages,
+        ChatOptions? options = null,
+        CancellationToken cancellationToken = default);
+        
+    IAsyncEnumerable<StreamingChatCompletionUpdate> CompleteStreamingAsync(
+        IList<ChatMessage> chatMessages,
+        ChatOptions? options = null,
+        CancellationToken cancellationToken = default);
+}
+```
+
+**Implementation Providers**:
+
+```csharp
+// Azure OpenAI
+builder.Services.AddSingleton<IChatClient>(sp =>
+{
+    var settings = sp.GetRequiredService<LLMSettings>();
+    return new AzureOpenAIClient(
+        new Uri(settings.AzureOpenAI.Endpoint),
+        new AzureKeyCredential(settings.AzureOpenAI.ApiKey)
+    ).AsChatClient(settings.AzureOpenAI.DeploymentName);
+});
+
+// Ollama (local)
+builder.Services.AddSingleton<IChatClient>(sp =>
+{
+    return new OllamaClient(new Uri("http://localhost:11434"))
+        .AsChatClient("llama2");
+});
+```
+
+#### 2. Builder Pattern
+
+**Role**: Feature extension through middleware chains
+
+```csharp
+var chatClient = new ChatClientBuilder()
+    .Use(new AzureOpenAIClient(endpoint, credential).AsChatClient(deploymentName))
+    // Telemetry middleware
+    .UseOpenTelemetry(sourceName: "SalesSupportAgent", configure: options =>
+    {
+        options.EnableSensitiveData = false;
+    })
+    // Logging middleware
+    .UseLogging()
+    // Function invocation middleware
+    .UseFunctionInvocation()
+    .Build();
+
+builder.Services.AddSingleton(chatClient);
+```
+
+**Middleware Execution Order**:
+
+```
+Request Flow:
+  User Input
+    ↓
+  [Logging] ← Request log
+    ↓
+  [OpenTelemetry] ← Span start
+    ↓
+  [FunctionInvocation] ← Tool call decision
+    ↓
+  [AzureOpenAI] ← LLM API call
+    ↓
+  [FunctionInvocation] ← Tool execution
+    ↓
+  [OpenTelemetry] ← Span end
+    ↓
+  [Logging] ← Response log
+    ↓
+  Response to User
+```
+
+#### 3. Fine-Grained Control with ChatOptions
+
+```csharp
+var options = new ChatOptions
+{
+    // Model parameters
+    Temperature = 0.7f,
+    TopP = 0.95f,
+    MaxTokens = 1000,
+    FrequencyPenalty = 0.0f,
+    PresencePenalty = 0.0f,
+    
+    // Tool definitions
+    Tools = new List<AITool>
+    {
+        AIFunctionFactory.Create(SearchEmailsAsync, "search_emails"),
+        AIFunctionFactory.Create(GetCalendarEventsAsync, "get_calendar_events"),
+        AIFunctionFactory.Create(SearchSharePointAsync, "search_sharepoint")
+    },
+    
+    // Response format
+    ResponseFormat = ChatResponseFormat.Json,
+    
+    // Stop sequences
+    StopSequences = new[] { "###", "END" }
+};
+
+var response = await chatClient.CompleteAsync(messages, options);
+```
+
+#### 4. Streaming Responses
+
+```csharp
+await foreach (var update in chatClient.CompleteStreamingAsync(messages, options))
+{
+    if (update.Text != null)
+    {
+        await turnContext.SendActivityAsync(update.Text);
+    }
+    
+    if (update.FinishReason == ChatFinishReason.ToolCalls)
+    {
+        // Handle tool calls
+        foreach (var toolCall in update.ToolCalls)
+        {
+            var result = await ExecuteToolAsync(toolCall);
+            messages.Add(new ChatMessage(ChatRole.Tool, result));
+        }
+        
+        // Re-invoke LLM with tool results
+        await foreach (var finalUpdate in chatClient.CompleteStreamingAsync(messages, options))
+        {
+            await turnContext.SendActivityAsync(finalUpdate.Text);
+        }
+    }
+}
+```
+
+### Microsoft.Extensions.AI Best Practices
+
+#### ✅ DO
+
+```csharp
+// 1. Compose features with the Builder pattern
+var client = new ChatClientBuilder()
+    .Use(baseClient)
+    .UseOpenTelemetry()
+    .UseLogging()
+    .Build();
+
+// 2. Pass CancellationToken
+var response = await chatClient.CompleteAsync(messages, options, cancellationToken);
+
+// 3. Design for provider switchability
+builder.Services.AddSingleton<IChatClient>(sp =>
+{
+    var provider = configuration["LLM:Provider"];
+    return provider switch
+    {
+        "AzureOpenAI" => CreateAzureOpenAIClient(sp),
+        "Ollama" => CreateOllamaClient(sp),
+        _ => throw new NotSupportedException($"Provider {provider} not supported")
+    };
+});
+```
+
+#### ❌ DON'T
+
+```csharp
+// 1. Depending directly on concrete classes
+public class SalesAgent
+{
+    private readonly AzureOpenAIClient _client; // BAD - should use IChatClient
+}
+
+// 2. Ignoring CancellationToken
+var response = await chatClient.CompleteAsync(messages); // No timeout control
+
+// 3. Ignoring exceptions during streaming
+await foreach (var update in client.CompleteStreamingAsync(messages))
+{
+    // No exception handling - crashes on connection loss
+}
+```
+
+---
+
+## Relationship Between SDKs
+
+### Architecture Diagram
+
+```mermaid
+graph TB
+    subgraph "Application Layer"
+        TeamsBot[Teams Bot<br/>ActivityHandler]
+        SalesAgent[Sales Agent<br/>Business Logic]
+    end
+    
+    subgraph "Microsoft.Extensions.AI Layer"
+        IChatClient[IChatClient<br/>Abstraction Interface]
+        Builder[ChatClientBuilder<br/>Middleware Chain]
+        Middleware1[OpenTelemetry<br/>Middleware]
+        Middleware2[Logging<br/>Middleware]
+        Middleware3[FunctionInvocation<br/>Middleware]
+    end
+    
+    subgraph "Agent 365 SDK Layer"
+        Observability[Agent365<br/>Observability]
+        Tooling[Agent365<br/>Tooling]
+        Notifications[Agent365<br/>Notifications]
+    end
+    
+    subgraph "Microsoft 365 SDK Layer"
+        GraphClient[GraphServiceClient]
+        EmailTool[OutlookEmailTool]
+        CalendarTool[OutlookCalendarTool]
+        SharePointTool[SharePointSearchTool]
+    end
+    
+    subgraph "LLM Providers"
+        AzureOpenAI[Azure OpenAI]
+        Ollama[Ollama]
+    end
+    
+    subgraph "Microsoft Graph API"
+        Mail[Mail API]
+        Calendar[Calendar API]
+        SharePoint[SharePoint API]
+    end
+    
+    TeamsBot -->|Uses| SalesAgent
+    SalesAgent -->|Calls| IChatClient
+    IChatClient -->|Built by| Builder
+    Builder -->|Adds| Middleware1
+    Builder -->|Adds| Middleware2
+    Builder -->|Adds| Middleware3
+    
+    Middleware1 -->|Integrates| Observability
+    Middleware3 -->|Uses| Tooling
+    SalesAgent -->|Sends| Notifications
+    
+    Tooling -->|Tool call| EmailTool
+    Tooling -->|Tool call| CalendarTool
+    Tooling -->|Tool call| SharePointTool
+    
+    EmailTool -->|Uses| GraphClient
+    CalendarTool -->|Uses| GraphClient
+    SharePointTool -->|Uses| GraphClient
+    
+    GraphClient -->|API call| Mail
+    GraphClient -->|API call| Calendar
+    GraphClient -->|API call| SharePoint
+    
+    IChatClient -.->|Implements| AzureOpenAI
+    IChatClient -.->|Implements| Ollama
+    
+    style TeamsBot fill:#e1f5ff
+    style SalesAgent fill:#e1f5ff
+    style IChatClient fill:#fff4e1
+    style Builder fill:#fff4e1
+    style Observability fill:#f0e1ff
+    style Tooling fill:#f0e1ff
+    style Notifications fill:#f0e1ff
+    style GraphClient fill:#e1ffe1
+```
+
+### Data Flow Example
+
+**When a user requests an email search**:
+
+1. **Teams Bot** (`TeamsBot.cs`): Receives user message
+2. **Sales Agent** (`SalesAgent.cs`): Starts message processing
+3. **Agent 365 Observability**: Starts span, begins recording metrics

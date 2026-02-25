@@ -148,6 +148,18 @@ new AdaptiveTextBlock
 }
 ```
 
+#### AdaptiveContainer
+Grouping and separating sections
+
+```csharp
+new AdaptiveContainer
+{
+    Separator = true,                    // Separator line
+    Spacing = AdaptiveSpacing.Medium,    // Spacing
+    Style = AdaptiveContainerStyle.Attention  // Warning style
+}
+```
+
 ## 📝 Customization Methods
 
 ### Add New Card Type
@@ -200,6 +212,13 @@ Size = AdaptiveTextSize.Large
 Size = AdaptiveTextSize.ExtraLarge
 ```
 
+#### Weight Changes
+```csharp
+Weight = AdaptiveTextWeight.Lighter
+Weight = AdaptiveTextWeight.Default
+Weight = AdaptiveTextWeight.Bolder
+```
+
 ## 🧪 Testing Methods
 
 ### Test with Bot Framework Emulator
@@ -243,6 +262,23 @@ Verify and edit JSON in [Adaptive Cards Designer](https://adaptivecards.io/desig
 - Display timestamps to show information freshness
 - Divide into sections for readability
 - Provide specific solutions when errors occur
+
+## 🔧 Troubleshooting
+
+### Adaptive Card Not Displaying
+
+**Cause**: Invalid JSON format
+**Solution**: Validate JSON in Adaptive Cards Designer
+
+### Styles Not Applied
+
+**Cause**: Style not supported by Teams
+**Solution**: Use only Teams-compatible elements (refer to official documentation)
+
+### Card Too Long
+
+**Cause**: Too much content
+**Solution**: Split sections into multiple messages
 
 ---
 

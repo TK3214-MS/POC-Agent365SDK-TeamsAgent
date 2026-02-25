@@ -1,18 +1,18 @@
-# Azure Production Environment Deployment Guide
+# Azure Production Deployment Guide
 
 [![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](../DEPLOYMENT-AZURE.md)
 [![English](https://img.shields.io/badge/lang-English-blue.svg)](DEPLOYMENT-AZURE.md)
 
 ## 📋 Overview
 
-This guide explains the procedures for deploying the Sales Support Agent to an Azure production environment.
+This guide explains how to deploy the Sales Support Agent to an Azure production environment.
 
 **Deployment Options**:
 - **Azure App Service** - Simple, pay-as-you-go, scalable
 - **Azure Container Apps** - Container-based, for microservices
 - **Azure Kubernetes Service (AKS)** - Enterprise-grade, advanced control
 
-**Note**: This guide provides procedural instructions only and does not include implementation code.
+**Note**: This guide is a procedural guide only and does not contain implementation code.
 
 ---
 
@@ -20,11 +20,11 @@ This guide explains the procedures for deploying the Sales Support Agent to an A
 
 | Item | Required | Description |
 |------|:--------:|-------------|
-| **Azure Subscription** | ✅ | Valid subscription |
+| **Azure Subscription** | ✅ | Active subscription |
 | **Azure CLI** | ✅ | Verify with `az --version` |
-| **Docker** | ⚪ | For Container Apps/AKS |
-| **kubectl** | ⚪ | For AKS |
-| **Locally Verified** | ✅ | [Getting Started](GETTING-STARTED.md) completed |
+| **Docker** | ⚪ | Required for Container Apps/AKS |
+| **kubectl** | ⚪ | Required for AKS |
+| **Local verification complete** | ✅ | [Getting Started](GETTING-STARTED.md) completed |
 
 ---
 
@@ -50,22 +50,22 @@ This guide explains the procedures for deploying the Sales Support Agent to an A
 |------|------------|---------------|-----|
 | **Setup Time** | 15-30 min | 30-45 min | 1-2 hours |
 | **Complexity** | ⭐ Low | ⭐⭐ Medium | ⭐⭐⭐ High |
-| **Cost (Minimum)** | $60/month | $40/month | $120/month |
+| **Cost (minimum)** | ~¥5,000/mo | ~¥3,000/mo | ~¥10,000/mo |
 | **Scalability** | 🔼 Medium | 🔼🔼 High | 🔼🔼🔼 Highest |
 | **Managed Identity** | ✅ | ✅ | ✅ |
 | **Custom Domain** | ✅ | ✅ | ✅ |
 | **Let's Encrypt SSL** | ✅ | ✅ | ✅ (Ingress) |
-| **Recommended Use Case** | Small to medium | Microservices | Enterprise |
+| **Recommended Use Case** | Small-Medium | Microservices | Enterprise |
 
 ### Recommendations
 
-| Scenario | Recommended Method | Reason |
-|----------|-------------------|--------|
-| **First deployment** | App Service | Simplest, GUI-complete |
-| **Cost-focused** | Container Apps | Low cost, pay-as-you-go |
-| **Microservices** | Container Apps | Container-native |
-| **Existing K8s env** | AKS | Infrastructure consistency |
-| **High availability** | AKS | Enterprise-grade |
+| Scenario | Recommended | Reason |
+|----------|-------------|--------|
+| **First deployment** | App Service | Simplest, GUI-based |
+| **Cost priority** | Container Apps | Low cost, pay-as-you-go |
+| **Microservices** | Container Apps | Container native |
+| **Existing Kubernetes** | AKS | Infrastructure unification |
+| **High availability & scale** | AKS | Enterprise grade |
 
 ---
 
@@ -102,7 +102,7 @@ az group show --name rg-salesagent-prod
 
 ### 2.3. Create Azure Container Registry (ACR)
 
-**Required only for Container Apps / AKS**
+**Required only when using Container Apps / AKS**
 
 ```bash
 # Create ACR
@@ -111,7 +111,7 @@ az acr create \
   --name salesagentacr \
   --sku Basic
 
-# Enable admin (for development)
+# Enable Admin (for development)
 az acr update \
   --name salesagentacr \
   --admin-enabled true
@@ -122,7 +122,7 @@ az acr credential show --name salesagentacr
 
 ---
 
-### 2.4. Build Container Image (For Container Apps/AKS)
+### 2.4. Build Container Image (for Container Apps/AKS)
 
 #### Create Dockerfile
 
@@ -183,16 +183,19 @@ az appservice plan create \
   --resource-group rg-salesagent-prod \
   --sku B1 \
   --is-linux
+
+# Scale up (production)
+# az appservice plan update --name plan-salesagent-prod --resource-group rg-salesagent-prod --sku P1V2
 ```
 
 **SKU Comparison**:
 
-| Tier | vCPU | RAM | Monthly (Est.) | Recommended Use |
-|------|------|-----|---------------|-----------------|
-| **B1** | 1 | 1.75GB | $60 | Dev/Test |
-| **S1** | 1 | 1.75GB | $120 | Small production |
-| **P1V2** | 1 | 3.5GB | $200 | Medium production |
-| **P2V2** | 2 | 7GB | $400 | High load production |
+| Tier | vCPU | RAM | Monthly (est.) | Recommended Use |
+|------|------|-----|----------------|-----------------|
+| **B1** | 1 | 1.75GB | ¥5,500 | Development/Testing |
+| **S1** | 1 | 1.75GB | ¥11,000 | Small-scale Production |
+| **P1V2** | 1 | 3.5GB | ¥18,000 | Medium-scale Production |
+| **P2V2** | 2 | 7GB | ¥36,000 | High-load Production |
 
 ---
 
@@ -223,11 +226,11 @@ az webapp identity assign \
   --resource-group rg-salesagent-prod \
   --name salesagent-prod
 
-# Record the output principalId
+# Note the output principalId
 # Example: "principalId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 ```
 
-**Grant Graph API permissions**: Refer to [Authentication Guide](AUTHENTICATION.md#42-managed-identity-configuration-on-app-service)
+**Grant Graph API permissions**: Refer to [Authentication Guide](AUTHENTICATION.md#42-managed-identity-setup-on-app-service)
 
 ---
 
@@ -243,7 +246,10 @@ az webapp config appsettings set \
     M365__UseManagedIdentity=true \
     LLM__Provider="AzureOpenAI" \
     LLM__AzureOpenAI__Endpoint="https://your-openai.openai.azure.com" \
-    LLM__AzureOpenAI__DeploymentName="gpt-4o"
+    LLM__AzureOpenAI__DeploymentName="gpt-4o" \
+    LLM__AzureOpenAI__ApiKey="@Microsoft.KeyVault(SecretUri=https://your-vault.vault.azure.net/secrets/OpenAIApiKey/)" \
+    Bot__MicrosoftAppId="your-bot-app-id" \
+    Bot__MicrosoftAppPassword="@Microsoft.KeyVault(SecretUri=https://your-vault.vault.azure.net/secrets/BotPassword/)"
 ```
 
 ---
@@ -270,11 +276,18 @@ az webapp deployment source config-zip \
   --src salesagent.zip
 ```
 
-**Method B: GitHub Actions** (described later)
+**Method B: GitHub Actions** (described below)
+
+**Method C: Visual Studio**
+
+1. Right-click solution → **Publish**
+2. **Azure** → **Azure App Service (Linux)**
+3. Select subscription and App Service
+4. **Publish**
 
 ---
 
-#### 3.6. Verification
+#### 3.6. Verify Operation
 
 ```bash
 # Health check
@@ -284,14 +297,38 @@ curl https://salesagent-prod.azurewebsites.net/health
 # {"Status":"Healthy","M365Configured":true,"LLMProvider":"AzureOpenAI"}
 
 # Observability Dashboard
-# Browser: https://salesagent-prod.azurewebsites.net/observability.html
+# Open https://salesagent-prod.azurewebsites.net/observability.html in browser
+```
+
+---
+
+#### 3.7. Custom Domain (Optional)
+
+```bash
+# Add custom domain
+az webapp config hostname add \
+  --resource-group rg-salesagent-prod \
+  --webapp-name salesagent-prod \
+  --hostname salesagent.yourdomain.com
+
+# SSL certificate binding (Managed Certificate - free)
+az webapp config ssl create \
+  --resource-group rg-salesagent-prod \
+  --name salesagent-prod \
+  --hostname salesagent.yourdomain.com
+
+az webapp config ssl bind \
+  --resource-group rg-salesagent-prod \
+  --name salesagent-prod \
+  --certificate-thumbprint <thumbprint> \
+  --ssl-type SNI
 ```
 
 ---
 
 ## 4. Option B: Azure Container Apps
 
-### Recommended: Cost Efficiency and Scalability Focus
+### Recommended: Cost-efficiency & Scalability Focus
 
 #### 4.1. Create Container Apps Environment
 
@@ -320,17 +357,73 @@ az containerapp create \
   --target-port 8080 \
   --ingress external \
   --registry-server salesagentacr.azurecr.io \
+  --registry-username salesagentacr \
+  --registry-password <acr-password> \
   --cpu 1.0 \
   --memory 2.0Gi \
   --min-replicas 1 \
-  --max-replicas 3
+  --max-replicas 3 \
+  --env-vars \
+    M365__ClientId="your-app-id" \
+    M365__UseManagedIdentity=true \
+    LLM__Provider="AzureOpenAI" \
+    LLM__AzureOpenAI__Endpoint="https://your-openai.openai.azure.com" \
+    LLM__AzureOpenAI__DeploymentName="gpt-4o"
+```
+
+---
+
+#### 4.3. Enable Managed Identity
+
+```bash
+# Enable system-assigned Managed Identity
+az containerapp identity assign \
+  --resource-group rg-salesagent-prod \
+  --name salesagent-prod \
+  --system-assigned
+
+# Note the principalId and grant Graph API permissions (see Authentication Guide)
+```
+
+---
+
+#### 4.4. Scaling Rule Configuration
+
+```bash
+# HTTP traffic-based scaling
+az containerapp update \
+  --name salesagent-prod \
+  --resource-group rg-salesagent-prod \
+  --scale-rule-name http-rule \
+  --scale-rule-type http \
+  --scale-rule-http-concurrency 10
+```
+
+---
+
+#### 4.5. Custom Domain
+
+```bash
+# Add custom domain
+az containerapp hostname add \
+  --resource-group rg-salesagent-prod \
+  --name salesagent-prod \
+  --hostname salesagent.yourdomain.com
+
+# Managed Certificate (free)
+az containerapp hostname bind \
+  --resource-group rg-salesagent-prod \
+  --name salesagent-prod \
+  --hostname salesagent.yourdomain.com \
+  --environment env-salesagent-prod \
+  --validation-method HTTP
 ```
 
 ---
 
 ## 5. Option C: Azure Kubernetes Service (AKS)
 
-### Recommended: Enterprise High Availability Environment
+### Recommended: Enterprise & High-availability Environment
 
 #### 5.1. Create AKS Cluster
 
@@ -378,6 +471,25 @@ spec:
         image: salesagentacr.azurecr.io/salesagent:v1.0.0
         ports:
         - containerPort: 8080
+        env:
+        - name: M365__ClientId
+          valueFrom:
+            secretKeyRef:
+              name: salesagent-secrets
+              key: m365-client-id
+        - name: M365__UseManagedIdentity
+          value: "true"
+        - name: LLM__Provider
+          value: "AzureOpenAI"
+        - name: LLM__AzureOpenAI__Endpoint
+          value: "https://your-openai.openai.azure.com"
+        - name: LLM__AzureOpenAI__DeploymentName
+          value: "gpt-4o"
+        - name: LLM__AzureOpenAI__ApiKey
+          valueFrom:
+            secretKeyRef:
+              name: salesagent-secrets
+              key: openai-api-key
         resources:
           requests:
             memory: "1Gi"
@@ -385,13 +497,109 @@ spec:
           limits:
             memory: "2Gi"
             cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: salesagent-service
+spec:
+  selector:
+    app: salesagent
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  type: LoadBalancer
+```
+
+---
+
+#### 5.3. Create Secrets
+
+```bash
+# Create Kubernetes secrets
+kubectl create secret generic salesagent-secrets \
+  --from-literal=m365-client-id="your-app-id" \
+  --from-literal=openai-api-key="your-api-key"
+```
+
+---
+
+#### 5.4. Deploy
+
+```bash
+# Apply manifests
+kubectl apply -f deployment.yaml
+
+# Verify
+kubectl get deployments
+kubectl get pods
+kubectl get services
+
+# Check logs
+kubectl logs -l app=salesagent --tail=100
+```
+
+---
+
+#### 5.5. Ingress Configuration (HTTPS)
+
+**ingress.yaml**:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: salesagent-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - salesagent.yourdomain.com
+    secretName: salesagent-tls
+  rules:
+  - host: salesagent.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: salesagent-service
+            port:
+              number: 80
+```
+
+```bash
+# Install Cert-Manager (Let's Encrypt SSL)
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+
+# Create ClusterIssuer
+# (Omitted: refer to cert-manager documentation)
+
+# Apply Ingress
+kubectl apply -f ingress.yaml
 ```
 
 ---
 
 ## 6. Application Insights Integration
 
-### Common for All Deployment Methods
+### Common Across All Deployment Methods
 
 #### 6.1. Create Application Insights
 
@@ -412,6 +620,36 @@ az monitor app-insights component show \
 
 ---
 
+#### 6.2. Application Configuration
+
+**appsettings.json** or **environment variables**:
+
+```json
+{
+  "ApplicationInsights": {
+    "InstrumentationKey": "your-instrumentation-key",
+    "EnableAdaptiveSampling": true,
+    "EnableDependencyTracking": true
+  }
+}
+```
+
+---
+
+#### 6.3. Add NuGet Package
+
+```bash
+dotnet add package Microsoft.ApplicationInsights.AspNetCore
+```
+
+**Program.cs**:
+
+```csharp
+builder.Services.AddApplicationInsightsTelemetry();
+```
+
+---
+
 ## 7. CI/CD Pipeline
 
 ### GitHub Actions Workflow Example
@@ -424,9 +662,11 @@ name: Deploy to Azure
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 env:
   AZURE_WEBAPP_NAME: salesagent-prod
+  AZURE_RESOURCE_GROUP: rg-salesagent-prod
   DOTNET_VERSION: '10.0.x'
 
 jobs:
@@ -440,15 +680,24 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
     
+    - name: Restore dependencies
+      run: dotnet restore
+      working-directory: ./SalesSupportAgent
+    
     - name: Build
-      run: dotnet build -c Release
+      run: dotnet build --no-restore -c Release
       working-directory: ./SalesSupportAgent
     
     - name: Publish
       run: dotnet publish -c Release -o ./publish
       working-directory: ./SalesSupportAgent
     
-    - name: Deploy to Azure
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
         app-name: ${{ env.AZURE_WEBAPP_NAME }}
@@ -459,28 +708,53 @@ jobs:
 
 ## 8. Cost Optimization
 
-### Monthly Cost Estimate
+### Monthly Cost Estimates
 
-| Resource | SKU | Monthly (Est.) |
-|----------|-----|---------------|
-| **App Service B1** | 1 vCPU, 1.75GB RAM | $60 |
-| **Container Apps** | 1 vCPU, 2GB RAM (0.5 avg) | $40 |
-| **AKS** | 2 nodes Standard_D2s_v3 | $140 |
-| **Application Insights** | 5GB/month | $20 |
-| **Azure OpenAI** | GPT-4o (1M tokens) | $15-60 |
+| Resource | SKU | Monthly (est.) |
+|----------|-----|----------------|
+| **App Service B1** | 1 vCPU, 1.75GB RAM | ¥5,500 |
+| **App Service P1V2** | 1 vCPU, 3.5GB RAM | ¥18,000 |
+| **Container Apps** | 1 vCPU, 2GB RAM (0.5 replica avg) | ¥3,000 |
+| **AKS** | 2 nodes Standard_D2s_v3 | ¥12,000 |
+| **ACR Basic** | - | ¥600 |
+| **Application Insights** | 5GB/mo | ¥1,500 |
+| **Azure OpenAI** | GPT-4o (1M tokens) | ¥1,000-5,000 |
+
+### Cost Reduction Tips
+
+1. **Azure Hybrid Benefit**: App Service discounts with Windows Server/SQL Server licenses
+2. **Reserved Instances**: Up to 72% discount with 1-year/3-year commitments
+3. **Container Apps**: Pay-as-you-go with 0 replicas when idle
+4. **Dev/Test Pricing**: Discounts for development/test environments
+5. **Auto-shutdown**: Automatically stop development environments at night/weekends
 
 ---
 
 ## 9. Monitoring and Alerts
 
-### Recommended Alert Settings
+### Recommended Alert Configuration
 
 | Metric | Threshold | Action |
 |--------|-----------|--------|
-| **HTTP 5xx errors** | > 5 per 5min | Email notification |
-| **Response time** | > 5 seconds | Teams notification |
-| **CPU usage** | > 80% | Scale out |
-| **Memory usage** | > 85% | Email notification |
+| **HTTP 5xx Errors** | > 5/5min | Email notification |
+| **Response Time** | > 5 seconds | Teams notification |
+| **CPU Usage** | > 80% | Scale out |
+| **Memory Usage** | > 85% | Email notification |
+| **Failed Dependencies** | > 3/5min | Email notification |
+
+### Create Azure Monitor Alerts
+
+```bash
+# CPU usage alert
+az monitor metrics alert create \
+  --name high-cpu-alert \
+  --resource-group rg-salesagent-prod \
+  --scopes /subscriptions/{sub-id}/resourceGroups/rg-salesagent-prod/providers/Microsoft.Web/sites/salesagent-prod \
+  --condition "avg Percentage CPU > 80" \
+  --window-size 5m \
+  --evaluation-frequency 1m \
+  --action-group <action-group-id>
+```
 
 ---
 
@@ -488,9 +762,18 @@ jobs:
 
 - [Getting Started](GETTING-STARTED.md) - Local environment setup
 - [Authentication](AUTHENTICATION.md) - Managed Identity configuration
-- [Troubleshooting](TROUBLESHOOTING.md) - Deployment error handling
-- [Architecture](ARCHITECTURE.md) - System configuration
+- [Troubleshooting](TROUBLESHOOTING.md) - Deployment error resolution
+- [Architecture](ARCHITECTURE.md) - System architecture
 
 ---
 
-Once production deployment is complete, start monitoring with [Observability Dashboard](OBSERVABILITY-DASHBOARD.md)! 🚀
+## 🔗 External Links
+
+- [Azure App Service](https://learn.microsoft.com/azure/app-service/)
+- [Azure Container Apps](https://learn.microsoft.com/azure/container-apps/)
+- [Azure Kubernetes Service](https://learn.microsoft.com/azure/aks/)
+- [Application Insights](https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview)
+
+---
+
+Once production deployment is complete, start monitoring with the [Observability Dashboard](OBSERVABILITY-DASHBOARD.md)! 🚀
